@@ -1,0 +1,12 @@
+<%- include('partials/header.ejs') %>
+
+<h2>Confirmez votre abonnement</h2>
+<p>Bonjour <%= fullName || 'futur abonné' %>,</p>
+<p>Merci de vous être abonné à la newsletter de Guilia Tech Global Service !</p>
+<p>Pour finaliser votre inscription, veuillez cliquer sur le bouton ci-dessous :</p>
+<p style="text-align: center; margin: 20px 0;">
+  <a href="<%= confirmationLink %>" class="button">Confirmer mon abonnement</a>
+</p>
+<p>Si vous n'avez pas demandé cet abonnement, vous pouvez ignorer cet e-mail en toute sécurité.</p>
+
+<%- include('partials/footer.ejs') %>

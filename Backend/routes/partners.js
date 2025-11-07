@@ -1,0 +1,138 @@
+const express = require("express");
+const path = require("path");
+const multer = require("multer");
+const sharp = require("sharp");
+const cacheMiddleware = require("../middleware/cache");
+const fs = require("fs");
+
+// ⚠️ CORRECTION : Importation du middleware d'authentification sous forme de fonction d'usine
+const authMiddlewareFactory = require(path.join(__dirname, '..', 'middleware', 'authMiddleware.js'));
+
+// Set up storage for multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // S'assurer que le dossier 'uploads' existe
+    if (!fs.existsSync("uploads")) {
+        fs.mkdirSync("uploads");
+    }
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    // Nous générerons le nom de fichier final dans le gestionnaire de route
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+/**
+ * Initialise et retourne le routeur Express pour la gestion des partenaires.
+ * @param {object} pool - L'objet de connexion à la base de données MariaDB.
+ * @returns {object} Le routeur Express configuré.
+ */
+module.exports = function (pool) {
+  const router = express.Router(); 
+  
+  // Récupération de la clé secrète et initialisation du middleware
+  const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_par_defaut_tres_long_et_securise";
+  const { protect } = authMiddlewareFactory(pool, JWT_SECRET);
+
+  // GET all partners
+  // @route   GET /api/partners
+  // @access  Public
+  // Ajout de cacheMiddleware pour optimiser les requêtes fréquentes
+  // Ajout de cacheMiddleware pour optimiser les requêtes fréquentes
+  router.get("/", cacheMiddleware(3600), async (req, res) => { 
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      const partners = await conn.query(
+        "SELECT * FROM partners ORDER BY name ASC"
+      );
+      res.json(partners);
+    } catch (err) {
+      console.error("❌ Erreur GET /partners:", err);
+      res.status(500).json({ error: "Erreur serveur: " + err.message });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
+  // POST a new partner
+  // @route   POST /api/partners
+  // @access  Private (Admin)
+  // ⚠️ CORRECTION : Utilisation de 'protect' au lieu de 'verifyToken'
+  router.post("/", protect, upload.single("logo"), async (req, res) => {
+    let conn;
+    try {
+      const { name, website_url } = req.body;
+      let logo_url = null;
+
+      if (!name) {
+        return res.status(400).json({ error: "Le nom du partenaire est requis" });
+      }
+
+      if (req.file) {
+        const originalPath = req.file.path;
+        const newFilename = `${Date.now()}.webp`;
+        const newPath = path.join("uploads", newFilename);
+
+        // Process image with sharp: resize, convert to webp, and compress
+        await sharp(originalPath)
+          .resize({ width: 400, withoutEnlargement: true }) // Resize to a max width of 400px
+          .webp({ quality: 80 }) // Convert to WebP with 80% quality
+          .toFile(newPath);
+
+        // Delete the original uploaded file
+        fs.unlinkSync(originalPath);
+
+        logo_url = `/uploads/${newFilename}`;
+      }
+
+      conn = await pool.getConnection();
+      const result = await conn.query(
+        "INSERT INTO partners (name, logo_url, website_url) VALUES (?, ?, ?)",
+        [name, logo_url, website_url]
+      );
+
+      res.status(201).json({
+        message: "Partenaire ajouté",
+        id: result.insertId,
+      });
+    } catch (err) {
+      console.error("❌ Erreur POST /partners:", err);
+      res.status(500).json({ error: "Erreur serveur: " + err.message });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
+  // DELETE a partner
+  // @route   DELETE /api/partners/:id
+  // @access  Private (Admin)
+  // ⚠️ CORRECTION : Utilisation de 'protect' au lieu de 'verifyToken'
+  router.delete("/:id", protect, async (req, res) => {
+    let conn;
+    try {
+      const partnerId = req.params.id;
+
+      conn = await pool.getConnection();
+      const result = await conn.query("DELETE FROM partners WHERE id = ?", [
+        partnerId,
+      ]);
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Partenaire non trouvé" });
+      }
+
+      res.json({ message: "Partenaire supprimé avec succès" });
+    } catch (err) {
+      console.error("❌ Erreur DELETE /partners:", err);
+      res.status(500).json({ error: "Erreur serveur" });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
+  return router; // <--- Retourne l'instance du routeur
+};
