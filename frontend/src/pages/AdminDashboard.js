@@ -24,6 +24,12 @@ export default function AdminDashboard() {
   const [newPartnerName, setNewPartnerName] = useState("");
   const [newPartnerLogoFile, setNewPartnerLogoFile] = useState(null);
   const [newPartnerWebsiteUrl, setNewPartnerWebsiteUrl] = useState("");
+  const [editingPartnerId, setEditingPartnerId] = useState(null);
+  const [editedPartnerData, setEditedPartnerData] = useState({
+    name: "",
+    website_url: "",
+  });
+  const [editedPartnerLogoFile, setEditedPartnerLogoFile] = useState(null);
 
   // Training state
   const [trainings, setTrainings] = useState([]);
@@ -581,6 +587,67 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEditPartnerClick = (partner) => {
+    setEditingPartnerId(partner.id);
+    setEditedPartnerData({
+      name: partner.name,
+      website_url: partner.website_url || "",
+    });
+    setEditedPartnerLogoFile(null);
+    setPartnerError("");
+  };
+
+  const handleCancelEditPartner = () => {
+    setEditingPartnerId(null);
+    setEditedPartnerData({ name: "", website_url: "" });
+    setEditedPartnerLogoFile(null);
+  };
+
+  const handleUpdatePartner = async (id) => {
+    if (!editedPartnerData.name?.trim()) {
+      setPartnerError("Le nom du partenaire ne peut pas être vide.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", editedPartnerData.name);
+    formData.append("website_url", editedPartnerData.website_url);
+    if (editedPartnerLogoFile) {
+      formData.append("logo", editedPartnerLogoFile);
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/partners/${id}`, {
+        method: "PUT",
+        headers: getAuthHeader(),
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Erreur lors de la mise à jour");
+      }
+
+      setConfirmMsg("Partenaire mis à jour avec succès.");
+      handleCancelEditPartner();
+      fetchPartners();
+      setTimeout(() => setConfirmMsg(""), 2000);
+    } catch (err) {
+      setPartnerError(err.message);
+    }
+  };
+
+  const handleEditedPartnerDataChange = (e) => {
+    const { name, value } = e.target;
+    setEditedPartnerData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditedPartnerLogoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setEditedPartnerLogoFile(e.target.files[0]);
+    }
+  };
+
   const handleEditDepartmentClick = (department) => {
     setEditingDepartmentId(department.id);
     setEditedDepartmentData({
@@ -1014,42 +1081,105 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {partners.map((partner) => (
-                  <tr key={partner.id}>
-                    <td className="border p-3">
-                      {partner.logo_url && (
-                        <img
-                          src={
-                            partner.logo_url.startsWith("data:")
-                              ? partner.logo_url
-                              : `http://localhost:5000${partner.logo_url}`
-                          }
-                          alt={partner.name}
-                          className="h-12 object-contain"
+                {partners.map((partner) =>
+                  editingPartnerId === partner.id ? (
+                    <tr key={`${partner.id}-edit`} className="bg-yellow-50">
+                      <td className="border p-2 align-top">
+                        <input
+                          type="file"
+                          onChange={handleEditedPartnerLogoChange}
+                          className="w-full p-1 border rounded"
                         />
-                      )}
-                    </td>
-                    <td className="border p-3">{partner.name}</td>
-                    <td className="border p-3 text-gray-600">
-                      <a
-                        href={partner.website_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {partner.website_url}
-                      </a>
-                    </td>
-                    <td className="border p-3 text-center">
-                      <button
-                        onClick={() => handleDeletePartner(partner.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
-                      >
-                        Supprimer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        {partner.logo_url && (
+                          <img
+                            src={
+                              partner.logo_url.startsWith("data:")
+                                ? partner.logo_url
+                                : `http://localhost:5000${partner.logo_url}`
+                            }
+                            alt={partner.name}
+                            className="h-12 object-contain mt-2"
+                          />
+                        )}
+                      </td>
+                      <td className="border p-2 align-top">
+                        <input
+                          type="text"
+                          name="name"
+                          value={editedPartnerData.name}
+                          onChange={handleEditedPartnerDataChange}
+                          className="w-full p-1 border rounded"
+                        />
+                      </td>
+                      <td className="border p-2 align-top">
+                        <input
+                          type="text"
+                          name="website_url"
+                          value={editedPartnerData.website_url}
+                          onChange={handleEditedPartnerDataChange}
+                          className="w-full p-1 border rounded"
+                        />
+                      </td>
+                      <td className="border p-2 text-center align-top">
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => handleUpdatePartner(partner.id)}
+                            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 w-full"
+                          >
+                            Enregistrer
+                          </button>
+                          <button
+                            onClick={handleCancelEditPartner}
+                            className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 w-full"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={partner.id}>
+                      <td className="border p-3">
+                        {partner.logo_url && (
+                          <img
+                            src={
+                              partner.logo_url.startsWith("data:")
+                                ? partner.logo_url
+                                : `http://localhost:5000${partner.logo_url}`
+                            }
+                            alt={partner.name}
+                            className="h-12 object-contain"
+                          />
+                        )}
+                      </td>
+                      <td className="border p-3">{partner.name}</td>
+                      <td className="border p-3 text-gray-600">
+                        <a
+                          href={partner.website_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {partner.website_url}
+                        </a>
+                      </td>
+                      <td className="border p-3 text-center">
+                        <button
+                          onClick={() => handleEditPartnerClick(partner)}
+                          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 transition-colors mr-2"
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => handleDeletePartner(partner.id)}
+                          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors"
+                        >
+                          Supprimer
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
           </div>

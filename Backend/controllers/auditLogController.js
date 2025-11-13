@@ -1,5 +1,7 @@
-const pool = require("../config/database");
 const { Parser } = require("json2csv");
+
+const { PrismaClient } = require("../generate/prisma");
+const prisma = new PrismaClient();
 
 const auditLogController = {
   getLogs: async (req, res) => {
@@ -10,39 +12,40 @@ const auditLogController = {
       const offset = (page - 1) * limit;
       const { adminId, startDate, endDate } = req.query;
 
-      const whereClauses = [];
-      const queryParams = [];
+      const whereCondition = {};
 
       if (adminId) {
-        whereClauses.push("admin_id = ?");
-        queryParams.push(adminId);
+        whereCondition.admin_id = Number(adminId);
       }
       if (startDate) {
-        whereClauses.push("created_at >= ?");
-        queryParams.push(startDate);
+        whereCondition.created_at = { gte: new Date(startDate) };
       }
       if (endDate) {
         const nextDay = new Date(endDate);
         nextDay.setDate(nextDay.getDate() + 1);
-        whereClauses.push("created_at < ?");
-        queryParams.push(nextDay.toISOString().split("T")[0]);
+        whereCondition.created_at = {
+          ...(whereCondition.created_at || {}),
+          lt: nextDay,
+        };
       }
 
-      const whereCondition =
-        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+      // const whereCondition =
+      // whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-      conn = await pool.getConnection();
+      const logs = await prisma.audit_logs.findMany({
+        where: whereCondition,
+        orderBy: { created_at: "desc" },
+        skip: offset,
+        take: limit,
+      });
 
-      const logsQuery = `SELECT * FROM audit_logs ${whereCondition} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-      const logs = await conn.query(logsQuery, [...queryParams, limit, offset]);
-
-      const countQuery = `SELECT COUNT(*) as total FROM audit_logs ${whereCondition}`;
-      const [totalResult] = await conn.query(countQuery, queryParams);
-      const totalLogs = totalResult.total;
+      const totalResult = await prisma.audit_logs.count({
+        where: whereCondition,
+      });
 
       res.status(200).json({
         logs,
-        totalPages: Math.ceil(totalLogs / limit),
+        totalPages: Math.ceil(totalResult / limit),
         currentPage: page,
       });
     } catch (err) {
@@ -54,12 +57,20 @@ const auditLogController = {
   },
 
   exportLogs: async (req, res) => {
-    let conn;
     try {
-      conn = await pool.getConnection();
-      const logs = await conn.query(
-        "SELECT id, admin_id, admin_name, action, target_type, target_id, details, created_at FROM audit_logs ORDER BY created_at DESC"
-      );
+      const logs = await prisma.audit_logs.findMany({
+        select: {
+          id: true,
+          admin_id: true,
+          admin_name: true,
+          action: true,
+          target_type: true,
+          target_id: true,
+          details: true,
+          created_at: true,
+        },
+        orderBy: { created_at: "desc" },
+      });
 
       const fields = [
         { label: "ID", value: "id" },
@@ -80,29 +91,28 @@ const auditLogController = {
       res.send(csv);
     } catch (err) {
       console.error("❌ Erreur GET /audit-logs/export:", err);
-      res
-        .status(500)
-        .json({
-          error: "Erreur serveur lors de l'exportation: " + err.message,
-        });
-    } finally {
-      if (conn) conn.release();
+      res.status(500).json({
+        error: "Erreur serveur lors de l'exportation: " + err.message,
+      });
     }
   },
 
   getAdminsForFilter: async (req, res) => {
     let conn;
     try {
-      conn = await pool.getConnection();
-      const admins = await conn.query(
-        "SELECT id, name FROM admins ORDER BY name ASC"
-      );
+      const admins = await prisma.admins.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      });
       res.status(200).json(admins);
     } catch (err) {
       console.error("❌ Erreur GET /audit-logs/admins:", err);
       res.status(500).json({ error: "Erreur serveur: " + err.message });
-    } finally {
-      if (conn) conn.release();
     }
   },
 };

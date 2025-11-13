@@ -17,9 +17,7 @@ const upload = multer({ storage: storage });
 
 module.exports = function (pool) {
   const router = express.Router();
-  const departmentController = require("../controllers/departmentController")(
-    pool
-  );
+  const departmentController = require("../controllers/departmentController")();
   const { protect } = require("../middleware/authMiddleware")(pool);
 
   // Routes publiques

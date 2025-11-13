@@ -1,121 +1,107 @@
 const { logAction } = require("../services/auditLogService");
+const { PrismaClient } = require("../generated/prisma");
+const prisma = new PrismaClient();
 
-module.exports = function (pool) {
+module.exports = function () {
   return {
     /**
-     * Récupère tous les services avec les informations du département et du responsable.
+     * Récupère tous les services avec les informations du département et le nombre d'employés.
      */
     getAllServices: async (req, res) => {
-      let conn;
       try {
-        conn = await pool.getConnection();
-        const query = `
-          SELECT 
-            s.id, s.title, s.description, s.icon, s.responsable_id, s.department_id,
-            d.name as department_name,
-            e.name as responsable_name,
-            (SELECT COUNT(*) FROM employees WHERE service_id = s.id) as employee_count
-          FROM services s
-          LEFT JOIN departments d ON s.department_id = d.id
-          LEFT JOIN employees e ON s.responsable_id = e.id
-          ORDER BY s.title ASC
-        `;
-        const rows = await conn.query(query);
-        res.status(200).json({ services: rows });
+        const services = await prisma.service.findMany({
+          include: {
+            department: true,
+            _count: {
+              select: { employees: true },
+            },
+          },
+          orderBy: {
+            title: "asc",
+          },
+        });
+
+        // Map services to include employee_count directly
+        const servicesWithCount = services.map(service => ({
+          ...service,
+          employee_count: service._count.employees,
+        }));
+
+        res.status(200).json({ services: servicesWithCount });
       } catch (error) {
         console.error("❌ Erreur GET /services:", error);
         res.status(500).json({
           message: "Erreur lors de la récupération des services.",
           error: error.message,
         });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     /**
-     * Récupère un service par son ID avec les informations du département et du responsable.
+     * Récupère un service par son ID avec les informations du département.
      */
     getServiceById: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        conn = await pool.getConnection();
-        const query = `
-          SELECT 
-            s.id, s.title, s.description, s.icon, s.responsable_id, s.department_id,
-            d.name as department_name,
-            e.name as responsable_name
-          FROM services s
-          LEFT JOIN departments d ON s.department_id = d.id
-          LEFT JOIN employees e ON s.responsable_id = e.id
-          WHERE s.id = ?
-        `;
-        const [rows] = await conn.query(query, [id]);
+        const service = await prisma.service.findUnique({
+          where: { id: parseInt(id) },
+          include: {
+            department: true,
+          },
+        });
 
-        if (rows.length === 0) {
+        if (!service) {
           return res.status(404).json({ message: "Service non trouvé." });
         }
 
-        res.status(200).json({ service: rows[0] });
+        res.status(200).json({ service });
       } catch (error) {
         console.error(`❌ Erreur GET /services/${req.params.id}:`, error);
         res.status(500).json({
           message: "Erreur lors de la récupération du service.",
           error: error.message,
         });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     /**
-     * Récupère des services similaires basés sur le department_id.
+     * Récupère des services similaires basés sur le même département.
      */
     getSimilarServices: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        const { limit = 3 } = req.query; // Default limit to 3
+        const { limit = 3 } = req.query;
 
-        conn = await pool.getConnection();
+        const currentService = await prisma.service.findUnique({
+          where: { id: parseInt(id) },
+          select: { department_id: true },
+        });
 
-        // First, get the department_id of the current service
-        const [currentService] = await conn.query(
-          "SELECT department_id FROM services WHERE id = ?",
-          [id]
-        );
-
-        if (!Array.isArray(currentService) || currentService.length === 0 || !currentService[0] || !currentService[0].department_id) {
-          return res.status(200).json({ services: [] }); // No similar services if no department or service not found
+        if (!currentService || !currentService.department_id) {
+          return res.status(200).json({ services: [] });
         }
 
-        const departmentId = currentService[0].department_id;
-
-        // Then, get other services from the same department, excluding the current service
-        const query = `
-          SELECT 
-            s.id, s.title, s.description, s.icon, s.responsable_id, s.department_id,
-            d.name as department_name,
-            e.name as responsable_name
-          FROM services s
-          LEFT JOIN departments d ON s.department_id = d.id
-          LEFT JOIN employees e ON s.responsable_id = e.id
-          WHERE s.department_id = ? AND s.id != ?
-          ORDER BY RAND()
-          LIMIT ?
-        `;
-        const similarServices = await conn.query(query, [departmentId, id, parseInt(limit)]);
+        const similarServices = await prisma.service.findMany({
+          where: {
+            department_id: currentService.department_id,
+            id: { not: parseInt(id) },
+          },
+          take: parseInt(limit),
+          include: {
+            department: true,
+          },
+        });
 
         res.status(200).json({ services: similarServices });
       } catch (error) {
-        console.error(`❌ Erreur GET /services/${req.params.id}/similar:`, error);
+        console.error(
+          `❌ Erreur GET /services/${req.params.id}/similar:`,
+          error
+        );
         res.status(500).json({
           message: "Erreur lors de la récupération des services similaires.",
           error: error.message,
         });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
@@ -123,7 +109,6 @@ module.exports = function (pool) {
      * Crée un nouveau service.
      */
     createService: async (req, res) => {
-      let conn;
       try {
         const { title, description, icon, responsable_id, department_id } =
           req.body;
@@ -134,29 +119,25 @@ module.exports = function (pool) {
             .json({ error: "Le titre du service est requis." });
         }
 
-        conn = await pool.getConnection();
-        const result = await conn.query(
-          "INSERT INTO services (title, description, icon, responsable_id, department_id) VALUES (?, ?, ?, ?, ?)",
-          [
+        const newService = await prisma.service.create({
+          data: {
             title,
-            description || null,
-            icon || null,
-            responsable_id || null,
-            department_id || null,
-          ]
-        );
+            description: description || null,
+            icon: icon || null,
+            responsable_id: responsable_id ? parseInt(responsable_id) : null,
+            department_id: department_id ? parseInt(department_id) : null,
+          },
+        });
 
-        await logAction(req, "CREATE_SERVICE", "service", result.insertId);
+        await logAction(req, "CREATE_SERVICE", "service", newService.id);
 
         res.status(201).json({
           message: "Service créé avec succès.",
-          insertId: result.insertId,
+          service: newService,
         });
       } catch (err) {
         console.error("❌ Erreur POST /services:", err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
@@ -164,59 +145,41 @@ module.exports = function (pool) {
      * Met à jour un service existant.
      */
     updateService: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
         const { title, description, icon, responsable_id, department_id } =
           req.body;
 
-        if (!title) {
-          return res
-            .status(400)
-            .json({ error: "Le titre du service est requis." });
-        }
+        const oldService = await prisma.service.findUnique({
+          where: { id: parseInt(id) },
+        });
 
-        conn = await pool.getConnection();
-
-        const oldDataResult = await conn.query(
-          "SELECT * FROM services WHERE id = ?",
-          [id]
-        );
-
-        const result = await conn.query(
-          "UPDATE services SET title = ?, description = ?, icon = ?, responsable_id = ?, department_id = ? WHERE id = ?",
-          [
-            title,
-            description || null,
-            icon || null,
-            responsable_id || null,
-            department_id || null,
-            id,
-          ]
-        );
-
-        if (result.affectedRows === 0) {
+        if (!oldService) {
           return res.status(404).json({ error: "Service non trouvé." });
         }
 
-        const newData = {
-          title,
-          description,
-          icon,
-          responsable_id,
-          department_id,
-        };
-        await logAction(req, "UPDATE_SERVICE", "service", id, {
-          old: oldDataResult[0],
-          new: newData,
+        const updatedService = await prisma.service.update({
+          where: { id: parseInt(id) },
+          data: {
+            title,
+            description: description || null,
+            icon: icon || null,
+            responsable_id: responsable_id ? parseInt(responsable_id) : null,
+            department_id: department_id ? parseInt(department_id) : null,
+          },
         });
 
-        res.status(200).json({ message: "Service mis à jour avec succès." });
+        await logAction(req, "UPDATE_SERVICE", "service", parseInt(id), {
+          old: oldService,
+          new: updatedService,
+        });
+
+        res
+          .status(200)
+          .json({ message: "Service mis à jour avec succès.", service: updatedService });
       } catch (err) {
         console.error(`❌ Erreur PUT /services/${req.params.id}:`, err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
@@ -224,38 +187,32 @@ module.exports = function (pool) {
      * Supprime un service.
      */
     deleteService: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        conn = await pool.getConnection();
 
-        // Vérifier si le service est utilisé par des employés
-        const [employees] = await conn.query(
-          "SELECT COUNT(*) as count FROM employees WHERE service_id = ?",
-          [id]
-        );
-        if (employees && employees[0].count > 0) {
+        const employeeCount = await prisma.employee.count({
+          where: { service_id: parseInt(id) },
+        });
+
+        if (employeeCount > 0) {
           return res.status(400).json({
-            error: `Impossible de supprimer, ce service est assigné à ${employees[0].count} employé(s).`,
+            error: `Impossible de supprimer, ce service est assigné à ${employeeCount} employé(s).`,
           });
         }
 
-        const result = await conn.query("DELETE FROM services WHERE id = ?", [
-          id,
-        ]);
+        await prisma.service.delete({
+          where: { id: parseInt(id) },
+        });
 
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ error: "Service non trouvé." });
-        }
-
-        await logAction(req, "DELETE_SERVICE", "service", id);
+        await logAction(req, "DELETE_SERVICE", "service", parseInt(id));
 
         res.status(200).json({ message: "Service supprimé avec succès." });
       } catch (err) {
         console.error(`❌ Erreur DELETE /services/${req.params.id}:`, err);
+         if (err.code === 'P2025') {
+          return res.status(404).json({ error: "Service non trouvé." });
+        }
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
   };

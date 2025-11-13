@@ -2,9 +2,9 @@ const express = require("express");
 const serviceController = require("../controllers/serviceController");
 const { verifyToken, authorizeRoles } = require("../middleware/auth");
 
-module.exports = function (pool) {
+module.exports = function () {
   const router = express.Router();
-  const controller = serviceController(pool);
+  const controller = serviceController();
 
   // Route publique pour les services
   router.get("/public", controller.getAllServices);

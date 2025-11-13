@@ -134,5 +134,68 @@ module.exports = function (pool) {
     }
   });
 
+  // UPDATE a partner
+  // @route   PUT /api/partners/:id
+  // @access  Private (Admin)
+  router.put("/:id", protect, upload.single("logo"), async (req, res) => {
+    let conn;
+    try {
+      const partnerId = req.params.id;
+      const { name, website_url } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Le nom du partenaire est requis" });
+      }
+
+      conn = await pool.getConnection();
+
+      // Check if partner exists and get old logo URL
+      const [partner] = await conn.query("SELECT logo_url FROM partners WHERE id = ?", [partnerId]);
+      if (!partner) {
+        return res.status(404).json({ error: "Partenaire non trouvé" });
+      }
+
+      let logo_url = partner.logo_url; // Keep old logo by default
+
+      if (req.file) {
+        // If there was an old logo, delete it
+        if (partner.logo_url) {
+          const oldLogoPath = path.join(__dirname, '..', partner.logo_url);
+          if (fs.existsSync(oldLogoPath)) {
+            fs.unlinkSync(oldLogoPath);
+          }
+        }
+
+        const originalPath = req.file.path;
+        const newFilename = `${Date.now()}.webp`;
+        const newPath = path.join("uploads", newFilename);
+
+        await sharp(originalPath)
+          .resize({ width: 400, withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toFile(newPath);
+
+        fs.unlinkSync(originalPath);
+        logo_url = `/uploads/${newFilename}`;
+      }
+
+      const result = await conn.query(
+        "UPDATE partners SET name = ?, logo_url = ?, website_url = ? WHERE id = ?",
+        [name, logo_url, website_url, partnerId]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: "Partenaire non trouvé" });
+      }
+
+      res.json({ message: "Partenaire mis à jour avec succès" });
+    } catch (err) {
+      console.error("❌ Erreur PUT /partners:", err);
+      res.status(500).json({ error: "Erreur serveur: " + err.message });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+
   return router; // <--- Retourne l'instance du routeur
 };

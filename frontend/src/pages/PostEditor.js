@@ -17,6 +17,7 @@ export default function PostEditor() {
     author: "",
     image_url: "",
     category: "Général",
+    created_at: new Date().toISOString().split("T")[0], // Ajout de la date
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +36,10 @@ export default function PostEditor() {
       });
       if (!response.ok) throw new Error("Article non trouvé");
       const data = await response.json();
+      // Assurer que la date est formatée en YYYY-MM-DD pour l'input type="date"
+      if (data.created_at) {
+        data.created_at = new Date(data.created_at).toISOString().split("T")[0];
+      }
       setPost(data);
     } catch (err) {
       setError("Erreur de chargement de l'article.");
@@ -258,6 +263,24 @@ export default function PostEditor() {
             id="author"
             value={post.author}
             onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-lg"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="created_at"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Date de publication
+          </label>
+          <input
+            type="date"
+            name="created_at"
+            id="created_at"
+            value={post.created_at}
+            onChange={handleChange}
+            required
             className="w-full px-3 py-2 border rounded-lg"
           />
         </div>

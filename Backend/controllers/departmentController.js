@@ -1,41 +1,41 @@
-/**
- * Contrôleur pour la gestion des départements.
- * @param {object} pool - L'objet de connexion à la base de données MariaDB.
- * @returns {object} Un objet contenant les méthodes du contrôleur.
- */
-module.exports = function (pool) {
-  const { logAction } = require("../services/auditLogService");
-  const fs = require("fs");
-  const csv = require("fast-csv");
+const { logAction } = require("../services/auditLogService");
+const { PrismaClient } = require("../generated/prisma");
+const prisma = new PrismaClient();
+const fs = require("fs");
+const csv = require("fast-csv");
 
+module.exports = function () {
   return {
     /**
-     * Récupère tous les départements avec le nombre de services associés.
+     * Récupère tous les départements avec le nombre de services et d'employés associés.
      */
     getAllDepartments: async (req, res) => {
-      let conn;
       try {
-        conn = await pool.getConnection();
-        const query = `
+        const departments = await prisma.department.findMany({
+          include: {
+            _count: {
+              select: { services: true },
+            },
+          },
+          orderBy: {
+            name: "asc",
+          },
+        });
 
-        SELECT d.*, 
-                COUNT(DISTINCT s.id) as service_count,
-                COUNT(DISTINCT e.id) as employee_count
-         FROM departments d
-         LEFT JOIN services s ON d.id = s.department_id
-         LEFT JOIN employees e ON s.id = e.service_id
-         GROUP BY d.id
-         ORDER BY d.name ASC`;
+        // Pour chaque département, comptez les employés dans les services associés
+        for (const department of departments) {
+          const services = await prisma.service.findMany({
+            where: { department_id: department.id },
+            select: { id: true },
+          });
+          const serviceIds = services.map(s => s.id);
+          const employeeCount = await prisma.employee.count({
+            where: { service_id: { in: serviceIds } },
+          });
+          department.employee_count = employeeCount;
+          department.service_count = department._count.services;
+        }
 
-        const rows = await conn.query(query);
-
-        // Convertir BigInt en String pour la sérialisation JSON
-        const departments = rows.map((dep) => ({
-          ...dep,
-          id: dep.id.toString(),
-          service_count: Number(dep.service_count), // Assurer que le comptage est un nombre
-          employee_count: Number(dep.employee_count),
-        }));
 
         res.status(200).json(departments);
       } catch (error) {
@@ -43,16 +43,12 @@ module.exports = function (pool) {
         res.status(500).json({
           message: "Erreur lors de la récupération des départements.",
           error: error.message,
-          sql: error.sql, // Inclure la requête SQL pour le débogage
         });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Créer un nouveau département
     createDepartment: async (req, res) => {
-      let conn;
       try {
         const { name, description } = req.body;
         const image = req.file ? req.file.path : null;
@@ -63,192 +59,158 @@ module.exports = function (pool) {
             .json({ error: "Le nom du département est requis." });
         }
 
-        conn = await pool.getConnection();
-        const result = await conn.query(
-          "INSERT INTO departments (name, description, image) VALUES (?, ?, ?)",
-          [name, description || null, image]
-        );
+        const newDepartment = await prisma.department.create({
+          data: {
+            name,
+            description: description || null,
+            image: image,
+          },
+        });
 
-        // Journal d'audit
         await logAction(
           req,
           "CREATE_DEPARTMENT",
           "department",
-          result.insertId
+          newDepartment.id
         );
 
         res.status(201).json({
           message: "Département créé avec succès.",
-          insertId: result.insertId,
+          department: newDepartment,
         });
       } catch (err) {
         console.error("❌ Erreur POST /departments:", err);
-        if (err.code === "ER_DUP_ENTRY") {
+        if (err.code === "P2002") {
           return res
             .status(409)
             .json({ error: "Un département avec ce nom existe déjà." });
         }
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Mettre à jour un département
     updateDepartment: async (req, res) => {
-      console.log('--- UPDATE DEPARTMENT ---');
-      let conn;
       try {
         const { id } = req.params;
         const { name, description } = req.body;
-        console.log(`ID: ${id}, Name: ${name}, Description: ${description}`);
 
-        if (!name) {
-          return res
-            .status(400)
-            .json({ error: "Le nom du département est requis." });
-        }
+        const oldDepartment = await prisma.department.findUnique({
+          where: { id: parseInt(id) },
+        });
 
-        conn = await pool.getConnection();
-
-        const oldDataRows = await conn.query(
-          "SELECT name, description, image FROM departments WHERE id = ?",
-          [id]
-        );
-
-        if (oldDataRows.length === 0) {
+        if (!oldDepartment) {
           return res.status(404).json({ error: "Département non trouvé." });
         }
 
-        const oldData = oldDataRows[0];
-        console.log('Old data:', oldData);
-
-        const updates = {};
-        if (name) updates.name = name;
-        if (description !== undefined) updates.description = description;
+        const dataToUpdate = {};
+        if (name) dataToUpdate.name = name;
+        if (description !== undefined) dataToUpdate.description = description;
 
         if (req.file) {
-          updates.image = req.file.path;
-          if (oldData.image) {
-            fs.unlink(oldData.image, (err) => {
+          dataToUpdate.image = req.file.path;
+          if (oldDepartment.image) {
+            fs.unlink(oldDepartment.image, (err) => {
               if (err) console.error("Erreur suppression ancienne image:", err);
             });
           }
         }
-        console.log('Updates:', updates);
 
-        const queryParts = [];
-        const params = [];
-        for (const [key, value] of Object.entries(updates)) {
-          queryParts.push(`${key} = ?`);
-          params.push(value);
-        }
-
-        if (queryParts.length === 0) {
-          return res.status(200).json({ message: "Aucune modification fournie." });
-        }
-
-        params.push(id);
-        const query = `UPDATE departments SET ${queryParts.join(", ")} WHERE id = ?`;
-        console.log('Query:', query);
-        console.log('Params:', params);
-
-        const result = await conn.query(query, params);
-        console.log('Query result:', result);
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ error: "Département non trouvé." });
-        }
-
-        const newDataForLog = { ...oldData, ...updates };
-        await logAction(req, "UPDATE_DEPARTMENT", "department", id, {
-          old: oldData,
-          new: newDataForLog,
+        const updatedDepartment = await prisma.department.update({
+          where: { id: parseInt(id) },
+          data: dataToUpdate,
         });
 
-        res.status(200).json({ message: "Département mis à jour avec succès." });
+        await logAction(req, "UPDATE_DEPARTMENT", "department", parseInt(id), {
+          old: oldDepartment,
+          new: updatedDepartment,
+        });
+
+        res.status(200).json({ message: "Département mis à jour avec succès.", department: updatedDepartment });
 
       } catch (err) {
         console.error(`❌ Erreur PUT /departments/${req.params.id}:`, err);
-        if (err.code === 'ER_DUP_ENTRY') {
+        if (err.code === 'P2002') {
           return res.status(409).json({ error: 'Un département avec ce nom existe déjà.' });
         }
         res.status(500).json({
           message: "Erreur serveur lors de la mise à jour du département.",
           error: err.message,
-          sql: err.sql,
-          errno: err.errno,
         });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Supprimer un département
     deleteDepartment: async (req, res) => {
-      let conn;
-      try {
-        const { id } = req.params;
-        conn = await pool.getConnection();
-
-        const department = await conn.query(
-          "SELECT image FROM departments WHERE id = ?",
-          [id]
-        );
-
-        // Vérifier si le département est utilisé par des employés
-        const [employees] = await conn.query(
-          "SELECT COUNT(*) as count FROM employees WHERE department_id = ?",
-          [id]
-        );
-        if (employees && employees[0].count > 0) {
-          return res.status(400).json({
-            error: `Impossible de supprimer, ce département est assigné à ${employees[0].count} employé(s).`,
-          });
+        try {
+            const { id } = req.params;
+    
+            // 1. Trouver les services liés au département
+            const services = await prisma.service.findMany({
+                where: { department_id: parseInt(id) },
+                select: { id: true }
+            });
+            const serviceIds = services.map(s => s.id);
+    
+            // 2. Vérifier si des employés sont liés à ces services
+            if (serviceIds.length > 0) {
+                const employeeCount = await prisma.employee.count({
+                    where: { service_id: { in: serviceIds } }
+                });
+    
+                if (employeeCount > 0) {
+                    return res.status(400).json({
+                        error: `Impossible de supprimer, ce département est indirectement assigné à ${employeeCount} employé(s) via ses services.`,
+                    });
+                }
+            }
+    
+            // 3. Récupérer les informations du département pour la suppression de l'image
+            const department = await prisma.department.findUnique({
+                where: { id: parseInt(id) },
+            });
+    
+            if (!department) {
+                return res.status(404).json({ error: "Département non trouvé." });
+            }
+    
+            // 4. Supprimer le département
+            await prisma.department.delete({
+                where: { id: parseInt(id) },
+            });
+    
+            // 5. Supprimer l'image associée
+            if (department.image) {
+                fs.unlink(department.image, (err) => {
+                    if (err) console.error("Erreur lors de la suppression de l'image:", err);
+                });
+            }
+    
+            // 6. Journal d'audit
+            await logAction(req, "DELETE_DEPARTMENT", "department", parseInt(id), null, {
+                sendNotificationEmail: true,
+            });
+    
+            res.status(200).json({ message: "Département supprimé avec succès." });
+        } catch (err) {
+            console.error(`❌ Erreur DELETE /departments/${req.params.id}:`, err);
+            if (err.code === 'P2025') {
+                return res.status(404).json({ error: "Département non trouvé." });
+            }
+            res.status(500).json({ error: "Erreur serveur: " + err.message });
         }
-
-        const result = await conn.query(
-          "DELETE FROM departments WHERE id = ?",
-          [id]
-        );
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ error: "Département non trouvé." });
-        }
-
-        // Supprimer l'image associée
-        if (department && department.length > 0 && department[0].image) {
-          fs.unlink(department[0].image, (err) => {
-            if (err)
-              console.error("Erreur lors de la suppression de l'image:", err);
-          });
-        }
-
-        await logAction(req, "DELETE_DEPARTMENT", "department", id, null, {
-          sendNotificationEmail: true,
-        });
-
-        res.status(200).json({ message: "Département supprimé avec succès." });
-      } catch (err) {
-        console.error(`❌ Erreur DELETE /departments/${req.params.id}:`, err);
-        res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
-      }
     },
 
     /**
      * Récupère tous les services pour un département donné.
      */
     getServicesByDepartment: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        conn = await pool.getConnection();
-        const services = await conn.query(
-          "SELECT id, title, description, icon FROM services WHERE department_id = ? ORDER BY title ASC",
-          [id]
-        );
+        const services = await prisma.service.findMany({
+          where: { department_id: parseInt(id) },
+          orderBy: { title: 'asc' },
+        });
         res.status(200).json(services);
       } catch (error) {
         console.error(
@@ -260,8 +222,6 @@ module.exports = function (pool) {
             "Erreur lors de la récupération des services du département.",
           error: error.message,
         });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
@@ -269,88 +229,109 @@ module.exports = function (pool) {
      * Récupère tous les employés pour un département donné.
      */
     getEmployeesByDepartment: async (req, res) => {
-      let conn;
-      try {
-        const { id } = req.params;
-        conn = await pool.getConnection();
-        const employees = await conn.query(
-          "SELECT id, name, position, email FROM employees WHERE department_id = ? ORDER BY name ASC",
-          [id]
-        );
-        res.status(200).json(employees);
-      } catch (error) {
-        console.error(
-          `❌ Erreur GET /departments/${req.params.id}/employees:`,
-          error
-        );
-        res.status(500).json({
-          message:
-            "Erreur lors de la récupération des employés du département.",
-          error: error.message,
-        });
-      } finally {
-        if (conn) conn.release();
-      }
+        try {
+            const { id } = req.params;
+    
+            // 1. Trouver les services liés au département
+            const services = await prisma.service.findMany({
+                where: { department_id: parseInt(id) },
+                select: { id: true }
+            });
+            const serviceIds = services.map(s => s.id);
+    
+            // 2. Trouver les employés dans ces services
+            if (serviceIds.length === 0) {
+                return res.status(200).json([]); // Pas de services, donc pas d'employés
+            }
+    
+            const employees = await prisma.employee.findMany({
+                where: {
+                    service_id: { in: serviceIds }
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    position: true,
+                    email: true,
+                },
+                orderBy: { name: 'asc' },
+            });
+    
+            res.status(200).json(employees);
+        } catch (error) {
+            console.error(`❌ Erreur GET /departments/${req.params.id}/employees:`, error);
+            res.status(500).json({
+                message: "Erreur lors de la récupération des employés du département.",
+                error: error.message,
+            });
+        }
     },
 
     /**
      * Exporte la liste des employés d'un département en fichier CSV.
      */
     exportEmployeesToCsv: async (req, res) => {
-      let conn;
-      try {
-        const { id } = req.params;
-        conn = await pool.getConnection();
-
-        // Récupérer le nom du département pour le nom du fichier
-        const [departmentInfo] = await conn.query(
-          "SELECT name FROM departments WHERE id = ?",
-          [id]
-        );
-        const departmentName =
-          departmentInfo && departmentInfo.length > 0
-            ? departmentInfo[0].name
-            : "export";
-        const fileName = `employes_${departmentName
-          .replace(/\s+/g, "_")
-          .toLowerCase()}_${new Date().toISOString().split("T")[0]}.csv`;
-
-        // Récupérer les employés
-        const employees = await conn.query(
-          "SELECT name, position, email, phone FROM employees WHERE department_id = ? ORDER BY name ASC",
-          [id]
-        );
-
-        res.setHeader("Content-Type", "text/csv");
-        res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="${fileName}"`
-        );
-
-        const csvStream = csv.format({ headers: true });
-        csvStream.pipe(res);
-
-        if (employees.length > 0) {
-          employees.forEach((employee) => {
-            csvStream.write({
-              Nom: employee.name,
-              Poste: employee.position,
-              Email: employee.email,
-              Téléphone: employee.phone,
+        try {
+            const { id } = req.params;
+    
+            // 1. Récupérer les informations du département
+            const department = await prisma.department.findUnique({
+                where: { id: parseInt(id) },
+                select: { name: true }
             });
-          });
+    
+            if (!department) {
+                return res.status(404).json({ error: "Département non trouvé." });
+            }
+    
+            const departmentName = department.name || "export";
+            const fileName = `employes_${departmentName.replace(/\s+/g, "_").toLowerCase()}_${new Date().toISOString().split("T")[0]}.csv`;
+    
+            // 2. Récupérer les IDs des services du département
+            const services = await prisma.service.findMany({
+                where: { department_id: parseInt(id) },
+                select: { id: true }
+            });
+            const serviceIds = services.map(s => s.id);
+    
+            // 3. Récupérer les employés de ces services
+            let employees = [];
+            if (serviceIds.length > 0) {
+                employees = await prisma.employee.findMany({
+                    where: { service_id: { in: serviceIds } },
+                    select: {
+                        name: true,
+                        position: true,
+                        email: true,
+                        phone: true,
+                    },
+                    orderBy: { name: 'asc' },
+                });
+            }
+    
+            // 4. Générer le CSV
+            res.setHeader("Content-Type", "text/csv");
+            res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    
+            const csvStream = csv.format({ headers: true });
+            csvStream.pipe(res);
+    
+            if (employees.length > 0) {
+                employees.forEach((employee) => {
+                    csvStream.write({
+                        Nom: employee.name,
+                        Poste: employee.position,
+                        Email: employee.email,
+                        Téléphone: employee.phone,
+                    });
+                });
+            }
+    
+            csvStream.end();
+        } catch (error) {
+            console.error(`❌ Erreur GET /departments/${req.params.id}/employees/export:`, error);
+            res.status(500).json({ message: "Erreur lors de l'exportation CSV." });
         }
-
-        csvStream.end();
-      } catch (error) {
-        console.error(
-          `❌ Erreur GET /departments/${req.params.id}/employees/export:`,
-          error
-        );
-        res.status(500).json({ message: "Erreur lors de l'exportation CSV." });
-      } finally {
-        if (conn) conn.release();
-      }
     },
   };
 };

@@ -63,13 +63,13 @@ module.exports = function (pool) {
       // Nombre total de visites pour la période
       // Ajout de la déstructuration pour garantir l'extraction du résultat
       const [totalResult] = await conn.query(
-        `SELECT COUNT(*) as total FROM visits WHERE visit_timestamp >= DATE_SUB(NOW(), INTERVAL ${interval})`
+        `SELECT COUNT(*) as total FROM visits WHERE created_at >= DATE_SUB(NOW(), INTERVAL ${interval})`
       );
       const totalVisits = Number(totalResult.total);
 
       // Visites par page pour la période
       const pagesResult = await conn.query(
-        `SELECT page, COUNT(*) as count FROM visits WHERE visit_timestamp >= DATE_SUB(NOW(), INTERVAL ${interval}) GROUP BY page ORDER BY count DESC`
+        `SELECT page, COUNT(*) as count FROM visits WHERE created_at >= DATE_SUB(NOW(), INTERVAL ${interval}) GROUP BY page ORDER BY count DESC`
       );
 
       const visitsByPage = pagesResult.map((item) => ({
@@ -83,7 +83,7 @@ module.exports = function (pool) {
         period,
       });
     } catch (err) {
-      console.error("❌ Erreur GET /visits/stats:", err);
+      console.error("❌ Erreur GET /visits/stats:", err.message, err.stack);
       res.status(500).json({ error: "Erreur serveur: " + err.message });
     } finally {
       if (conn) conn.release();
@@ -108,7 +108,7 @@ module.exports = function (pool) {
 
       // Visites paginées
       const visits = await conn.query(
-        "SELECT * FROM visits ORDER BY visit_timestamp DESC LIMIT ? OFFSET ?",
+        "SELECT * FROM visits ORDER BY created_at DESC LIMIT ? OFFSET ?",
         [limit, offset]
       );
 

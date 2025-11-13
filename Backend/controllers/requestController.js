@@ -1,4 +1,5 @@
-const Request = require('../models/Request');
+const { PrismaClient } = require("../generated/prisma");
+const prisma = new PrismaClient();
 
 // GET toutes les requêtes avec pagination
 exports.getRequests = async (req, res) => {
@@ -9,23 +10,24 @@ exports.getRequests = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Construction de la query
-    let query = {};
-    if (search.trim() !== '') {
-      query = {
-        $or: [
-          { nom: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { besoin: { $regex: search, $options: 'i' } }
-        ]
-      };
-    }
+    const where = search.trim() !== '' ? {
+      OR: [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { besoin: { contains: search } }
+      ]
+    } : {};
 
-    const requests = await Request.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+    const requests = await prisma.request.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        date_creation: 'desc'
+      }
+    });
 
-    const total = await Request.countDocuments(query);
+    const total = await prisma.request.count({ where });
     const totalPages = Math.ceil(total / limit);
 
     res.json({
@@ -44,12 +46,15 @@ exports.getRequests = async (req, res) => {
 // DELETE une requête
 exports.deleteRequest = async (req, res) => {
   try {
-    const request = await Request.findByIdAndDelete(req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: 'Requête non trouvée' });
-    }
+    const { id } = req.params;
+    await prisma.request.delete({
+      where: { id: parseInt(id) }
+    });
     res.json({ message: 'Requête supprimée' });
   } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Requête non trouvée' });
+    }
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
@@ -57,16 +62,16 @@ exports.deleteRequest = async (req, res) => {
 // UPDATE une requête
 exports.updateRequest = async (req, res) => {
   try {
-    const request = await Request.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!request) {
-      return res.status(404).json({ error: 'Requête non trouvée' });
-    }
+    const { id } = req.params;
+    const request = await prisma.request.update({
+      where: { id: parseInt(id) },
+      data: req.body
+    });
     res.json({ message: 'Requête modifiée', request });
   } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Requête non trouvée' });
+    }
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };

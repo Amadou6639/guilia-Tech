@@ -61,6 +61,11 @@ const PartnersPage = () => {
                     </div>
                   )}
                   <h3 className="text-xl font-semibold text-gray-800">{partner.name}</h3>
+                  {partner.website_url && (
+                    <p className="text-sm text-blue-600 mt-2 truncate" title={partner.website_url}>
+                      {partner.website_url}
+                    </p>
+                  )}
                 </a>
               ))}
             </div>

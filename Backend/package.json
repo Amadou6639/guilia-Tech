@@ -7,6 +7,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -27,7 +28,11 @@
     "sharp": "^0.34.4"
   },
   "devDependencies": {
+    "@types/node": "^24.10.0",
     "nodemon": "^3.0.1",
-    "sequelize-cli": "^6.6.3"
+    "prisma": "^6.19.0",
+    "sequelize-cli": "^6.6.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Prisma schema generated from backup.sql (MariaDB/MySQL dump)
+// Models map to the original table names using @@map so you can run introspection/migrations if needed.
+
+model Admin {
+  id         Int      @id @default(autoincrement())
+  name       String?
+  email      String   @unique
+  password   String
+  created_at DateTime? @map("created_at")
+  role       String?
+
+  auditLogs  AuditLog[]
+
+  @@map("admins")
+}
+
+model AuditLog {
+  id       Int      @id @default(autoincrement())
+  admin_id Int?     @map("admin_id")
+  admin_name   String?
+  action   String?
+  target_type   String?
+  target_id   Int?
+  details   String?
+  admin    Admin?   @relation(fields: [admin_id], references: [id])
+  created_at DateTime? @map("created_at")
+
+  @@map("audit_logs")
+}
+
+model BlogPost {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String?
+  slug       String   @unique
+  excerpt    String?
+  image_url    String?
+  author    String?
+  category    String? @default("Général")
+  created_at DateTime? @map("created_at")
+  updated_at DateTime? @map("updated_at")
+
+
+  @@map("blog_posts")
+}
+
+model Department {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  image       String?
+
+  services    Service[]
+
+  @@map("departments")
+}
+
+model Service {
+  id                Int       @id @default(autoincrement())
+  title             String
+  description       String?
+  icon              String?
+  created_at        DateTime? @map("created_at")
+  department_id     Int?      @map("department_id")
+  employee_count    Int?      @default(0)
+  responsable_id    Int?      @default(0)
+
+  department        Department? @relation(fields: [department_id], references: [id])
+//  responsable       Employee?   @relation("ResponsableServices", fields: [responsable_id], references: [id])
+  employees         Employee[]
+
+  @@map("services")
+}
+
+model Employee {
+  id          Int       @id @default(autoincrement())
+  name        String
+  email       String?
+  photo_url       String?
+  position    String?
+  age         Int?
+  experience  Int?
+  remaining_leaves      Int?
+  phone       String?
+  address     String?
+  hire_date   DateTime?  @map("hire_date")
+  job_id      Int?       @map("job_id") @default(0)
+  salary      Int?       @default(0)
+  department_id Int?       @map("department_id")
+  service_id  Int?       @map("service_id")
+  function_id Int?       @map("function_id")
+
+  service     Service?   @relation(fields: [service_id], references: [id])
+  employeeFunction    EmployeeFunction?  @relation(fields: [function_id], references: [id])
+
+  // relation used by Service.manager
+//  responsableServices Service[] @relation("ResponsableServices")
+
+  @@map("employees")
+}
+
+model EmployeeFunction {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  created_at  DateTime? @map("created_at")
+  employees   Employee[]
+
+  @@map("functions")
+}
+
+model Job {
+  id        Int      @id @default(autoincrement())
+  title     String?
+  content   String?
+  min_salary Int?
+  max_salary Int?
+
+  @@map("jobs")
+}
+
+model Leave {
+  id          Int      @id @default(autoincrement())
+  employee_id Int?     @map("employee_id")
+  start_date  DateTime? @map("start_date")
+  end_date    DateTime? @map("end_date")
+  reason      String?
+  type        String?
+  status      String?
+
+//  employee    Employee? @relation(fields: [employee_id], references: [id])
+
+  @@map("leaves")
+}
+
+model Page {
+  id         Int      @id @default(autoincrement())
+  slug       String?  @unique
+  title      String?
+  content    String?
+  created_at DateTime? @map("created_at")
+  updated_at DateTime? @map("updated_at")
+
+  @@map("pages")
+}
+
+model Partner {
+  id      Int    @id @default(autoincrement())
+  name    String
+  logo_url    String?
+  website_url String?
+
+  @@map("partners")
+}
+
+model Request {
+  id         Int      @id @default(autoincrement())
+  name       String?
+  email      String?
+  tel      String?
+  besoin    String?
+  date_creation DateTime? 
+  status     String?
+
+  @@map("requests")
+}
+
+model Salary {
+  id          Int      @id @default(autoincrement())
+  employee_id Int      @map("employee_id")
+  amount      Float?
+  last_payment_date   DateTime? 
+  payment_status      String @default("En attente")
+
+  created_at  DateTime?
+  updated_at  DateTime?
+
+//  employee    Employee  @relation(fields: [employee_id], references: [id])
+
+  @@map("salaries")
+}
+
+model Subscriber {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique
+  full_name  String?
+  phone_number      String?
+  token      String?
+  confirmed     Int? @default(0)
+  created_at DateTime? @map("created_at")
+
+  @@map("subscribers")
+}
+
+model Training {
+  id      Int    @id @default(autoincrement())
+  title   String?
+  description String?
+  created_at DateTime? @map("created_at")
+
+  @@map("trainings")
+}
+
+model Visit {
+  id         Int      @id @default(autoincrement())
+  page       String?
+  visit_timestamp DateTime? @map("created_at")
+  ip_address         String?
+  user_agent String?   @map("user_agent")
+  referrer   String?
+
+  @@map("visits")
+}
+

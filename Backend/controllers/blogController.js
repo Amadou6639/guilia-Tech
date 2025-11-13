@@ -1,3 +1,5 @@
+const { PrismaClient } = require("../generated/prisma");
+const prisma = new PrismaClient();
 const sharp = require("sharp");
 const fs = require("fs");
 
@@ -17,18 +19,10 @@ const slugify = (text) => {
     .replace(/-+$/, ""); // Supprime les tirets à la fin
 };
 
-/**
- * Initialise et retourne les méthodes du contrôleur de blog.
- * @param {object} pool - L'objet de connexion à la base de données MariaDB.
- * @returns {object} Un objet contenant toutes les fonctions du contrôleur.
- */
-module.exports = function (pool) { // <-- CRUCIAL : Exportation d'une fonction qui prend 'pool'
-  
-  // L'objet du contrôleur est maintenant retourné par la fonction
+module.exports = function () {
   return {
     // Récupérer tous les articles (public, avec pagination, recherche, catégorie)
     getAllPosts: async (req, res) => {
-      let conn;
       try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 6;
@@ -36,38 +30,27 @@ module.exports = function (pool) { // <-- CRUCIAL : Exportation d'une fonction q
         const category = req.query.category || "";
         const offset = (page - 1) * limit;
 
-        conn = await pool.getConnection(); // Utilisation du pool injecté
-
-        let whereClauses = [];
-        let queryParams = [];
-
-        if (search.trim() !== "") {
-          whereClauses.push("(title LIKE ? OR content LIKE ?)");
-          queryParams.push(`%${search.trim()}%`, `%${search.trim()}%`);
+        const where = {};
+        if (search) {
+          where.OR = [
+            { title: { contains: search } },
+            { content: { contains: search } },
+          ];
+        }
+        if (category) {
+          where.category = category;
         }
 
-        if (category.trim() !== "") {
-          whereClauses.push("category = ?");
-          queryParams.push(category.trim());
-        }
+        const posts = await prisma.blogPost.findMany({
+          where,
+          skip: offset,
+          take: limit,
+          orderBy: {
+            created_at: "desc",
+          },
+        });
 
-        const whereString =
-          whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-
-        // Obtenir le nombre total d'articles
-        const totalQuery = `SELECT COUNT(*) as total FROM blog_posts ${whereString}`;
-        const totalResult = await conn.query(totalQuery, queryParams);
-        const total = Number(totalResult[0].total);
-
-        // Obtenir les articles pour la page actuelle
-        const postsQuery = `
-          SELECT id, title, slug, excerpt, image_url, category, author, created_at 
-          FROM blog_posts 
-          ${whereString} 
-          ORDER BY created_at DESC 
-          LIMIT ? OFFSET ?`;
-        const postsParams = [...queryParams, limit, offset];
-        const posts = await conn.query(postsQuery, postsParams);
+        const total = await prisma.blogPost.count({ where });
 
         res.status(200).json({
           posts,
@@ -78,68 +61,62 @@ module.exports = function (pool) { // <-- CRUCIAL : Exportation d'une fonction q
       } catch (err) {
         console.error("❌ Erreur GET /blog:", err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Récupérer un article par son ID (pour l'édition)
     getPostById: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        conn = await pool.getConnection();
-        const posts = await conn.query("SELECT * FROM blog_posts WHERE id = ?", [
-          id,
-        ]);
-        if (posts.length === 0) {
+        const post = await prisma.blogPost.findUnique({
+          where: { id: parseInt(id) },
+        });
+        if (!post) {
           return res.status(404).json({ error: "Article non trouvé." });
         }
-        res.status(200).json(posts[0]);
+        res.status(200).json(post);
       } catch (err) {
         console.error(`❌ Erreur GET /blog/id/${req.params.id}:`, err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Récupérer un article par son slug (pour la page de détail)
     getPostBySlug: async (req, res) => {
-      let conn;
       try {
         const { slug } = req.params;
-        conn = await pool.getConnection();
-        const posts = await conn.query(
-          "SELECT * FROM blog_posts WHERE slug = ?",
-          [slug]
-        );
-        if (posts.length === 0) {
+        const post = await prisma.blogPost.findUnique({
+          where: { slug },
+        });
+        if (!post) {
           return res.status(404).json({ error: "Article non trouvé." });
         }
-        res.status(200).json(posts[0]);
+        res.status(200).json(post);
       } catch (err) {
         console.error(`❌ Erreur GET /blog/${req.params.slug}:`, err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Récupérer toutes les catégories uniques
     getAllCategories: async (req, res) => {
-      let conn;
       try {
-        conn = await pool.getConnection();
-        const categories = await conn.query(
-          "SELECT DISTINCT category FROM blog_posts WHERE category IS NOT NULL AND category != '' ORDER BY category ASC"
-        );
+        const categories = await prisma.blogPost.findMany({
+          where: {
+            category: {
+              not: null,
+              not: "",
+            },
+          },
+          distinct: ["category"],
+          orderBy: {
+            category: "asc",
+          },
+        });
         res.status(200).json(categories.map((c) => c.category));
       } catch (err) {
         console.error("❌ Erreur GET /blog/categories:", err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
@@ -174,9 +151,9 @@ module.exports = function (pool) { // <-- CRUCIAL : Exportation d'une fonction q
 
     // Créer un nouvel article
     createPost: async (req, res) => {
-      let conn;
       try {
-        const { title, content, excerpt, author, image_url, category } = req.body;
+        const { title, content, excerpt, author, image_url, category, created_at } =
+          req.body;
         if (!title || !content || !author) {
           return res
             .status(400)
@@ -185,43 +162,48 @@ module.exports = function (pool) { // <-- CRUCIAL : Exportation d'une fonction q
 
         const slug = slugify(title);
 
-        conn = await pool.getConnection(); // Utilisation du pool injecté
+        const newPost = await prisma.blogPost.create({
+          data: {
+            title,
+            slug,
+            content,
+            excerpt,
+            author,
+            image_url,
+            category,
+            created_at: created_at ? new Date(created_at) : new Date(),
+          },
+        });
 
-        // Vérifier si le slug existe déjà
-        const existing = await conn.query(
-          "SELECT id FROM blog_posts WHERE slug = ?",
-          [slug]
-        );
-        if (existing.length > 0) {
+        res.status(201).json({
+          message: "Article créé avec succès.",
+          post: newPost,
+        });
+      } catch (err) {
+        if (err.code === "P2002") {
           return res.status(409).json({
             error:
               "Un article avec un titre similaire existe déjà. Veuillez changer le titre.",
           });
         }
-
-        const result = await conn.query(
-          "INSERT INTO blog_posts (title, slug, content, excerpt, author, image_url, category) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [title, slug, content, excerpt, author, image_url, category]
-        );
-
-        res.status(201).json({
-          message: "Article créé avec succès.",
-          insertId: result.insertId,
-        });
-      } catch (err) {
         console.error("❌ Erreur POST /blog:", err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Mettre à jour un article
     updatePost: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        const { title, content, excerpt, author, image_url, category } = req.body;
+        const {
+          title,
+          content,
+          excerpt,
+          author,
+          image_url,
+          category,
+          created_at,
+        } = req.body;
 
         if (!title || !content || !author) {
           return res
@@ -231,46 +213,45 @@ module.exports = function (pool) { // <-- CRUCIAL : Exportation d'une fonction q
 
         const slug = slugify(title);
 
-        conn = await pool.getConnection(); // Utilisation du pool injecté
+        const updatedPost = await prisma.blogPost.update({
+          where: { id: parseInt(id) },
+          data: {
+            title,
+            slug,
+            content,
+            excerpt,
+            author,
+            image_url,
+            category,
+            created_at: created_at ? new Date(created_at) : undefined,
+          },
+        });
 
-        const result = await conn.query(
-          "UPDATE blog_posts SET title = ?, slug = ?, content = ?, excerpt = ?, author = ?, image_url = ?, category = ? WHERE id = ?",
-          [title, slug, content, excerpt, author, image_url, category, id]
-        );
-
-        if (result.affectedRows === 0) {
+        res.status(200).json({ message: "Article mis à jour avec succès.", post: updatedPost });
+      } catch (err) {
+        if (err.code === "P2025") {
           return res.status(404).json({ error: "Article non trouvé." });
         }
-
-        res.status(200).json({ message: "Article mis à jour avec succès." });
-      } catch (err) {
         console.error(`❌ Erreur PUT /blog/${req.params.id}:`, err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
 
     // Supprimer un article
     deletePost: async (req, res) => {
-      let conn;
       try {
         const { id } = req.params;
-        conn = await pool.getConnection(); // Utilisation du pool injecté
-        const result = await conn.query("DELETE FROM blog_posts WHERE id = ?", [
-          id,
-        ]);
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ error: "Article non trouvé." });
-        }
+        await prisma.blogPost.delete({
+          where: { id: parseInt(id) },
+        });
 
         res.status(200).json({ message: "Article supprimé avec succès." });
       } catch (err) {
+        if (err.code === "P2025") {
+          return res.status(404).json({ error: "Article non trouvé." });
+        }
         console.error(`❌ Erreur DELETE /blog/${req.params.id}:`, err);
         res.status(500).json({ error: "Erreur serveur: " + err.message });
-      } finally {
-        if (conn) conn.release();
       }
     },
   };

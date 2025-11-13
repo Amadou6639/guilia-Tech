@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 const Employees = () => {
   const { token: authToken } = useAuth();
   const [employees, setEmployees] = useState([]);
+  const [services, setServices] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -16,7 +17,7 @@ const Employees = () => {
     name: "",
     email: "",
     position: "",
-    department_id: "",
+    service_id: "",
     hire_date: "",
     salary: "",
     phone: "",
@@ -59,6 +60,21 @@ const Employees = () => {
     }
   }, [API_URL, authToken, location.state, navigate]);
 
+  const fetchServices = useCallback(async () => {
+    if (!authToken) return;
+    try {
+      const config = { headers: { Authorization: `Bearer ${authToken}` } };
+      const res = await axios.get(`${API_URL}/services`, config);
+      setServices(res.data.services || []);
+    } catch (error) {
+      console.error("Erreur lors du chargement des services:", error);
+      toast.error(
+        "Impossible de charger la liste des services. " +
+          (error.response?.data?.error || error.message)
+      );
+    }
+  }, [API_URL, authToken]);
+
   const fetchDepartments = useCallback(async () => {
     if (!authToken) return;
     try {
@@ -77,9 +93,10 @@ const Employees = () => {
   useEffect(() => {
     if (authToken) {
       fetchData();
+      fetchServices();
       fetchDepartments();
     }
-  }, [authToken, fetchData, fetchDepartments]);
+  }, [authToken, fetchData, fetchServices, fetchDepartments]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -104,7 +121,7 @@ const Employees = () => {
         name: "",
         email: "",
         position: "",
-        department_id: "",
+        service_id: "",
         hire_date: "",
         salary: "",
         phone: "",
@@ -205,7 +222,7 @@ const Employees = () => {
               <th className="py-3 px-6">Nom</th>
               <th className="py-3 px-6">Email</th>
               <th className="py-3 px-6">Poste</th>
-              <th className="py-3 px-6">Département</th>
+              <th className="py-3 px-6">Service</th>
               <th className="py-3 px-6">Téléphone</th>
               <th className="py-3 px-6">Adresse</th>
               <th className="py-3 px-6 text-center">Actions</th>
@@ -309,32 +326,35 @@ const Employees = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="department_id"
+                  htmlFor="service_id"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Département
+                  Service
                 </label>
                 <select
-                  name="department_id"
-                  id="department_id"
-                  value={newEmployee.department_id}
+                  name="service_id"
+                  id="service_id"
+                  value={newEmployee.service_id}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   required
                 >
                   {loading ? (
-                    <option value="" disabled>Chargement des départements...</option>
-                  ) : departments.length > 0 ? (
+                    <option value="" disabled>Chargement des services...</option>
+                  ) : services.length > 0 ? (
                     <>
                       <option value="">Non assigné</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
-                      ))}
+                      {services.map((service) => {
+                        const department = departments.find(dep => dep.id === service.department_id);
+                        return (
+                          <option key={service.id} value={service.id}>
+                            {service.title} {department ? `(${department.name})` : ""}
+                          </option>
+                        );
+                      })}
                     </>
                   ) : (
-                    <option value="" disabled>Aucun département disponible</option>
+                    <option value="" disabled>Aucun service disponible</option>
                   )}
                 </select>
               </div>
@@ -449,32 +469,35 @@ const Employees = () => {
               </div>
               <div className="mb-4">
                 <label
-                  htmlFor="department_id"
+                  htmlFor="service_id"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Département
+                  Service
                 </label>
                 <select
-                  name="department_id"
-                  id="department_id"
-                  value={editingEmployee.department_id || ""}
+                  name="service_id"
+                  id="service_id"
+                  value={editingEmployee.service_id || ""}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   required
                 >
                   {loading ? (
-                    <option value="" disabled>Chargement des départements...</option>
-                  ) : departments.length > 0 ? (
+                    <option value="" disabled>Chargement des services...</option>
+                  ) : services.length > 0 ? (
                     <>
                       <option value="">Non assigné</option>
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
-                      ))}
+                      {services.map((service) => {
+                        const department = departments.find(dep => dep.id === service.department_id);
+                        return (
+                          <option key={service.id} value={service.id}>
+                            {service.title} {department ? `(${department.name})` : ""}
+                          </option>
+                        );
+                      })}
                     </>
                   ) : (
-                    <option value="" disabled>Aucun département disponible</option>
+                    <option value="" disabled>Aucun service disponible</option>
                   )}
                 </select>
               </div>

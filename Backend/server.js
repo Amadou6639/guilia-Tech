@@ -17,6 +17,10 @@ const fs = require("fs");
 const JWT_SECRET =
   process.env.JWT_SECRET || "votre_secret_par_defaut_tres_long_et_securise";
 
+// NOUVELLE DÉFINITION : Cette variable lira l'URL de votre frontend React
+// fournie par Render (ou utilisera localhost en développement).
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+
 const app = express();
 
 app.set("etag", false);
@@ -24,7 +28,8 @@ app.set("etag", false);
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    // Utilise la variable CORS_ORIGIN (l'URL de votre frontend en production)
+    origin: [CORS_ORIGIN], 
     credentials: true,
   })
 );
@@ -32,7 +37,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
 // --- UTILISATION DES ROUTES ---
 
 const routesPath = path.join(__dirname, "routes");
@@ -70,6 +74,9 @@ fs.readdirSync(routesPath).forEach((file) => {
         const blogApiPath = "/api/blog"; // Correction pour la route du blog
         app.use(blogApiPath, routeModule(pool));
         console.log(`✅ Route chargée dynamiquement : ${blogApiPath}`);
+      } else if (routeName === "serviceRoutes" || routeName === "departmentRoutes") {
+        app.use(apiPath, routeModule(pool));
+        console.log(`✅ Route chargée dynamiquement : ${apiPath}`);
       } else {
         // Cas général pour les autres routes
         if(routeModule && typeof routeModule === 'function'){

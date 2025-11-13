@@ -153,15 +153,12 @@ const EmployeeListModal = ({
         </div>
         <div className="p-4 border-t bg-gray-50 flex justify-end gap-4">
           {!loading && employees.length > 0 && (
-            <a
-              href={`${apiUrl}/departments/${departmentId}/employees/export`}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => handleExportEmployees(departmentId, departmentName)}
               className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
             >
               Exporter en CSV
-            </a>
+            </button>
           )}
           <button
             onClick={() => onAssignEmployee(departmentId)}

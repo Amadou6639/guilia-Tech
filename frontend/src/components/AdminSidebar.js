@@ -66,6 +66,14 @@ export default function AdminSidebar() {
           <span className="mr-3">🧑‍💼</span> Gestion RH
         </NavLink>
         <NavLink
+          to="/admin/hrm/employees"
+          className={({ isActive }) =>
+            `${linkStyle} ${isActive ? activeLinkStyle : ""}`
+          }
+        >
+          <span className="mr-3">👥</span> Employés
+        </NavLink>
+        <NavLink
           to="/admin/hrm/departments"
           className={({ isActive }) =>
             `${linkStyle} ${isActive ? activeLinkStyle : ""}`

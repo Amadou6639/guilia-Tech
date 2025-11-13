@@ -22,12 +22,12 @@ async function createVisitsTable() {
       CREATE TABLE IF NOT EXISTS visits (
         id INT AUTO_INCREMENT PRIMARY KEY,
         page VARCHAR(255) NOT NULL,
-        visit_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         ip_address VARCHAR(45),
         user_agent TEXT,
         referrer VARCHAR(500),
         INDEX page_index (page),
-        INDEX timestamp_index (visit_timestamp)
+        INDEX timestamp_index (created_at)
       )
     `);
     
