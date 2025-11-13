@@ -9,16 +9,15 @@ BigInt.prototype.toJSON = function () {
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const pool = require("./config/database");
+const pool = require("./config/database"); // Vérifiez ce chemin
 const morgan = require("morgan");
 const fs = require("fs");
 
 // --- Paramètres de Sécurité ---
-const JWT_SECRET =
-  process.env.JWT_SECRET || "votre_secret_par_defaut_tres_long_et_securise";
+const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_par_defaut_tres_long_et_securise";
 
-// NOUVELLE DÉFINITION : Cette variable lira l'URL de votre frontend React
-// fournie par Render (ou utilisera localhost en développement).
+// CORRECTION IMPORTANTE POUR RAILWAY :
+// En production, Railway fournit une URL, en développement on utilise localhost:3000 (React)
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
 
 const app = express();
@@ -28,8 +27,7 @@ app.set("etag", false);
 // Middleware
 app.use(
   cors({
-    // Utilise la variable CORS_ORIGIN (l'URL de votre frontend en production)
-    origin: [CORS_ORIGIN], 
+    origin: [CORS_ORIGIN, "http://localhost:3000"], // Multiple origins pour flexibilité
     credentials: true,
   })
 );
@@ -37,19 +35,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-// --- UTILISATION DES ROUTES ---
 
+// --- UTILISATION DES ROUTES ---
 const routesPath = path.join(__dirname, "routes");
 fs.readdirSync(routesPath).forEach((file) => {
-  // On s'assure que c'est un fichier JS et pas un fichier de config
   if (file.endsWith(".js")) {
     const routeName = file.replace(".js", "");
     const routeModule = require(path.join(routesPath, file));
 
-    // Le nom de la route est dérivé du nom du fichier
-    // ex: jobRoutes.js -> /api/jobs, functionRoutes.js -> /api/functions
     let baseName = routeName.replace("Routes", "").toLowerCase();
-    // Correction pour gérer les pluriels : 'function' -> 'functions', 'job' -> 'jobs', etc.
     if (baseName === 'salary') {
       baseName = 'salaries';
     } else if (baseName === 'contact') {
@@ -61,9 +55,8 @@ fs.readdirSync(routesPath).forEach((file) => {
     const apiPath = `/api/${baseName}`;
 
     if (typeof routeModule === "function") {
-      // Cas spécial pour la route d'authentification qui a plus d'arguments
       if (routeName === "auth") {
-        const authApiPath = "/api/auth"; // Correction du chemin pour l'authentification
+        const authApiPath = "/api/auth";
         const { verifyToken, authorizeRoles } = require("./middleware/auth");
         app.use(
           authApiPath,
@@ -71,14 +64,13 @@ fs.readdirSync(routesPath).forEach((file) => {
         );
         console.log(`✅ Route chargée dynamiquement : ${authApiPath}`);
       } else if (routeName === "blog") {
-        const blogApiPath = "/api/blog"; // Correction pour la route du blog
+        const blogApiPath = "/api/blog";
         app.use(blogApiPath, routeModule(pool));
         console.log(`✅ Route chargée dynamiquement : ${blogApiPath}`);
       } else if (routeName === "serviceRoutes" || routeName === "departmentRoutes") {
         app.use(apiPath, routeModule(pool));
         console.log(`✅ Route chargée dynamiquement : ${apiPath}`);
       } else {
-        // Cas général pour les autres routes
         if(routeModule && typeof routeModule === 'function'){
           app.use(apiPath, routeModule(pool));
           console.log(`✅ Route chargée dynamiquement : ${apiPath}`);
@@ -88,28 +80,53 @@ fs.readdirSync(routesPath).forEach((file) => {
   }
 });
 
-// Routes de test
+// Routes de test améliorées pour Railway
 app.get("/api/test", async (req, res) => {
-  res.json({ message: "API MariaDB fonctionne!" });
+  res.json({ 
+    message: "API MariaDB fonctionne!",
+    environment: process.env.NODE_ENV || 'development',
+    platform: 'Railway'
+  });
 });
 
 app.get("/api/health", async (req, res) => {
   try {
     const conn = await pool.getConnection();
-    const result = await conn.query("SELECT 1 as test");
+    const result = await conn.query("SELECT 1 as test, NOW() as db_time, DATABASE() as db_name");
     conn.release();
     res.json({
       status: "OK",
-      database: "Connecté",
-      test: result[0].test,
+      environment: process.env.NODE_ENV || 'development',
+      database: {
+        status: "Connecté",
+        name: result[0].db_name,
+        time: result[0].db_time
+      },
+      server_time: new Date().toISOString(),
+      platform: "Railway"
     });
   } catch (error) {
+    console.error("❌ Erreur de santé DB:", error);
     res.status(500).json({
       status: "ERROR",
       database: "Déconnecté",
       error: error.message,
+      environment: process.env.NODE_ENV || 'development'
     });
   }
+});
+
+// Route info système pour debug Railway
+app.get("/api/system-info", (req, res) => {
+  res.json({
+    node_version: process.version,
+    platform: process.platform,
+    environment: process.env.NODE_ENV || 'development',
+    database_host: process.env.MYSQLHOST || 'localhost',
+    database_name: process.env.MYSQLDATABASE || 'guilla_tech',
+    cors_origin: CORS_ORIGIN,
+    railway: !!process.env.RAILWAY_ENVIRONMENT
+  });
 });
 
 // Middleware de gestion d'erreurs
@@ -130,22 +147,30 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    // Logique d'initialisation de la base de données ici
     console.log("🚀 Initialisation de la base de données...");
 
-    // Test de connexion à la base de données
+    // Test de connexion amélioré
     const conn = await pool.getConnection();
+    const dbInfo = await conn.query("SELECT DATABASE() as db_name, VERSION() as version");
     console.log("✅ Connexion à la base de données réussie");
+    console.log(`📊 Base: ${dbInfo[0].db_name}`);
+    console.log(`🔧 Version MariaDB: ${dbInfo[0].version}`);
     conn.release();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {  // Important: écouter sur 0.0.0.0 pour Railway
       console.log(`🚀 Serveur démarré sur le port ${PORT}`);
       console.log(`📊 Utilisation de MariaDB comme base de données`);
-      console.log(`🌐 URL: http://localhost:${PORT}`);
-      console.log("✅ Toutes les routes sont configurées (même temporaires)");
+      console.log(`🌐 URL: http://0.0.0.0:${PORT}`);
+      console.log(`🔧 Environnement: ${process.env.NODE_ENV || 'development'}`);
+      console.log("✅ Toutes les routes sont configurées");
+      
+      // URLs de test
+      console.log(`🧪 Test santé: http://0.0.0.0:${PORT}/api/health`);
+      console.log(`🔍 Info système: http://0.0.0.0:${PORT}/api/system-info`);
     });
   } catch (error) {
     console.error("❌ Impossible de démarrer le serveur:", error);
+    console.error("🔍 Détails de l'erreur:", error.message);
     process.exit(1);
   }
 };
