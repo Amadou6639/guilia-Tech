@@ -5,6 +5,7 @@ const pool = mariadb.createPool({
   user: process.env.MYSQLUSER || process.env.DB_USER || "amadou",
   password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "66396816",
   database: process.env.MYSQLDATABASE || process.env.DB_NAME || "guilla_tech",
+  ssl: process.env.MYSQL_SSL === 'true',
   port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
   connectionLimit: 10,
   acquireTimeout: 60000,
