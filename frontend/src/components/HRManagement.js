@@ -25,7 +25,7 @@ export default function HRManagement() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://localhost:5000/api/employees", {
+      const response = await fetch("http://https://guilia-tech-3.onrender.com/api/employees", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -42,7 +42,7 @@ export default function HRManagement() {
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/departments", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/departments", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -70,7 +70,7 @@ export default function HRManagement() {
 
   const handleAddEmployee = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/employees", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/employees", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

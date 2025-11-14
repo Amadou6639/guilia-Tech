@@ -95,7 +95,7 @@ export default function AdminDashboard() {
     setPostLoading(true);
     setPostError("");
     try {
-      const response = await fetch("http://localhost:5000/api/blog", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/blog", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
     setPartnerLoading(true);
     setPartnerError("");
     try {
-      const response = await fetch("http://localhost:5000/api/partners", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/partners", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
     setTrainingLoading(true);
     setTrainingError("");
     try {
-      const response = await fetch("http://localhost:5000/api/trainings", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/trainings", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -220,7 +220,7 @@ export default function AdminDashboard() {
     setServiceLoading(true);
     setServiceError("");
     try {
-      const response = await fetch("http://localhost:5000/api/services", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/services", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
     setDepartmentLoading(true);
     setDepartmentError("");
     try {
-      const response = await fetch("http://localhost:5000/api/departments", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/departments", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/partners", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/partners", {
         method: "POST",
         headers: {
           ...getAuthHeader(),
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
     }
     setAddingTraining(true);
     try {
-      const response = await fetch("http://localhost:5000/api/trainings", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/trainings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -472,7 +472,7 @@ export default function AdminDashboard() {
     }
     setAddingService(true);
     try {
-      const response = await fetch("http://localhost:5000/api/services", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/services", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -534,7 +534,7 @@ export default function AdminDashboard() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/departments", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/departments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

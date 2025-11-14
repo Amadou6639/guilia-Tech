@@ -64,7 +64,7 @@ function AppContent() {
         return;
       }
       try {
-        await fetch("http://localhost:5000/api/visits", {
+       await fetch("https://guilia-tech-3.onrender.com/api/visits", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

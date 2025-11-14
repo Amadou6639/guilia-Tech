@@ -31,7 +31,7 @@ export default function Contact() {
     try {
       // Note: L'endpoint /api/contact n'existe peut-être pas encore sur votre backend.
       // Il faudra le créer pour que le formulaire fonctionne.
-      const response = await fetch("http://localhost:5000/api/contact", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

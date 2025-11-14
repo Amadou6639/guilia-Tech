@@ -8,7 +8,7 @@ const FeaturedPartners = () => {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/partners");
+        const response = await fetch("http://https://guilia-tech-3.onrender.com/api/partners");
         if (!response.ok) {
           throw new Error("Failed to fetch partners");
         }

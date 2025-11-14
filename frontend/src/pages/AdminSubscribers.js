@@ -25,7 +25,7 @@ export default function AdminSubscribers() {
     try {
       setLoading(true);
       setError("");
-      const response = await fetch("http://localhost:5000/api/subscribers", {
+      const response = await fetch("https://guilia-tech-3.onrender.com/api/subscribers", {
         headers,
       });
 
