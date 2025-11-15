@@ -99,6 +99,7 @@ const EmployeeListModal = ({
   onEditEmployee,
   onAddEmployee,
   onAssignEmployee,
+  handleExportEmployees // ⭐ PROP AJOUTÉE
 }) => {
   if (!isOpen) return null;
 
@@ -414,6 +415,12 @@ const Departments = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
+  // ⭐⭐ FONCTION MANQUANTE AJOUTÉE ⭐⭐
+  const handleExportEmployees = (departmentId, departmentName) => {
+    console.log(`Export des employés: ${departmentName} (${departmentId})`);
+    alert(`Export pour ${departmentName} - À implémenter`);
+  };
+
   const fetchDepartments = useCallback(async () => {
     if (!authToken) return;
     setIsLoading(true);
@@ -615,7 +622,7 @@ const Departments = () => {
                   Description
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre d’employés
+                  Nombre d'employés
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nombre de services
@@ -712,6 +719,7 @@ const Departments = () => {
         onEditEmployee={handleEditEmployee}
         onAddEmployee={handleOpenAddEmployeeModal}
         onAssignEmployee={handleOpenAssignEmployeeModal}
+        handleExportEmployees={handleExportEmployees} // ⭐ PROP AJOUTÉE
       />
 
       <AddEmployeeModal
@@ -721,7 +729,6 @@ const Departments = () => {
         departmentId={addEmployeeModal.departmentId}
         authToken={authToken}
         apiUrl={API_URL}
-        onAssignEmployee={handleOpenAssignEmployeeModal}
       />
 
       <AssignEmployeeModal
