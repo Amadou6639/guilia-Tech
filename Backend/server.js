@@ -128,7 +128,18 @@ app.get("/api/system-info", (req, res) => {
     railway: !!process.env.RAILWAY_ENVIRONMENT
   });
 });
-
+// Ajoutez cette route après les autres routes
+app.get("/api/system-info", (req, res) => {
+  res.json({
+    node_version: process.version,
+    platform: process.platform,
+    environment: process.env.NODE_ENV || 'development',
+    database_host: process.env.MYSQLHOST || 'localhost',
+    database_name: process.env.MYSQLDATABASE || 'defaultdb',
+    railway: false,
+    render: true
+  });
+});
 // Middleware de gestion d'erreurs
 app.use((err, req, res, next) => {
   console.error("❌ Erreur non gérée:", err.stack);
