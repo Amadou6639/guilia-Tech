@@ -99,6 +99,7 @@ const EmployeeListModal = ({
   onEditEmployee,
   onAddEmployee,
   onAssignEmployee,
+  onExportEmployees
 }) => {
   if (!isOpen) return null;
 
@@ -154,7 +155,7 @@ const EmployeeListModal = ({
         <div className="p-4 border-t bg-gray-50 flex justify-end gap-4">
           {!loading && employees.length > 0 && (
             <button
-              onClick={() => handleExportEmployees(departmentId, departmentName)}
+              onClick={() => onExportEmployees(departmentId, departmentName)}
               className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
             >
               Exporter en CSV
@@ -576,6 +577,56 @@ const Departments = () => {
     });
   };
 
+  // ⭐⭐ FONCTION handleExportEmployees AJOUTÉE ICI ⭐⭐
+  const handleExportEmployees = async (departmentId, departmentName) => {
+    try {
+      console.log(`Exporting employees from department: ${departmentName}`);
+      
+      // Afficher un message de chargement
+      toast.info("Génération du fichier CSV...");
+      
+      // Appel API pour exporter les employés
+      const response = await axios.get(
+        `${API_URL}/salaries/export?departmentId=${departmentId}`,
+        {
+          headers: { 
+            Authorization: `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          responseType: 'blob' // Important pour les fichiers
+        }
+      );
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Nom du fichier avec date
+      const date = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `employes-${departmentName}-${date}.csv`);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Fichier CSV exporté avec succès !");
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'export:', error);
+      
+      // Gestion d'erreur améliorée
+      if (error.response?.status === 404) {
+        toast.error("La fonction d'export n'est pas encore disponible sur le serveur.");
+      } else if (error.response?.status === 403) {
+        toast.error("Vous n'avez pas l'autorisation d'exporter les données.");
+      } else {
+        toast.error("Erreur lors de l'export des données. Veuillez réessayer.");
+      }
+    }
+  };
+
   const totalDepartments = departments.length;
   const totalServices = departments.reduce(
     (sum, dept) => sum + (dept.service_count || 0),
@@ -615,7 +666,7 @@ const Departments = () => {
                   Description
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre d’employés
+                  Nombre d'employés
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nombre de services
@@ -712,6 +763,7 @@ const Departments = () => {
         onEditEmployee={handleEditEmployee}
         onAddEmployee={handleOpenAddEmployeeModal}
         onAssignEmployee={handleOpenAssignEmployeeModal}
+        onExportEmployees={handleExportEmployees} // ⭐ PROP AJOUTÉE ICI ⭐
       />
 
       <AddEmployeeModal
