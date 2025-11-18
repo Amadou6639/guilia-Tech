@@ -1,42 +1,27 @@
-const mariadb = require("mariadb");
+const { Pool } = require('pg');
 
-const pool = mariadb.createPool({
-  host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
-  user: process.env.MYSQLUSER || process.env.DB_USER || "amadou",
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "66396816",
-  database: process.env.MYSQLDATABASE || process.env.DB_NAME || "guilla_tech",
-  ssl: process.env.MYSQL_SSL === 'true',
-  port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
-  connectionLimit: 10,
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true,
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 60000,
+  idleTimeoutMillis: 60000,
+  max: 10
 });
 
-// Test de la connexion amélioré
-pool
-  .getConnection()
-  .then((conn) => {
-    console.log("🔗 Tentative de connexion à la base de données...");
-    return conn.query("SELECT DATABASE() as db_name, NOW() as server_time")
-      .then((rows) => {
-        console.log(`✅ Connecté à MariaDB sur Railway!`);
-        console.log(`📊 Base de données: ${rows[0].db_name}`);
-        console.log(`⏰ Heure du serveur: ${rows[0].server_time}`);
-        console.log(`🌐 Hôte: ${process.env.MYSQLHOST || 'localhost'}`);
-      })
-      .finally(() => {
-        conn.release();
-      });
+// Test de connexion amélioré
+pool.query('SELECT NOW() as server_time, current_database() as db_name')
+  .then((result) => {
+    console.log(`✅ Connecté à PostgreSQL sur Render!`);
+    console.log(`📊 Base de données: ${result.rows[0].db_name}`);
+    console.log(`⏰ Heure du serveur: ${result.rows[0].server_time}`);
+    console.log(`🌐 Utilisation de PostgreSQL avec DATABASE_URL`);
   })
   .catch((err) => {
-    console.error("❌ Erreur de connexion MariaDB:", err.message);
-    console.error("📌 Code erreur:", err.code);
+    console.error("❌ Erreur de connexion PostgreSQL:", err.message);
+    console.log("🔍 DATABASE_URL disponible:", process.env.DATABASE_URL ? "✓ Oui" : "✗ Non");
     console.log("🔍 Variables d'environnement disponibles:");
-    console.log("- MYSQLHOST:", process.env.MYSQLHOST ? "✓ Défini" : "✗ Non défini");
-    console.log("- MYSQLUSER:", process.env.MYSQLUSER ? "✓ Défini" : "✗ Non défini");
-    console.log("- MYSQLDATABASE:", process.env.MYSQLDATABASE ? "✓ Défini" : "✗ Non défini");
-    console.log("- MYSQLPORT:", process.env.MYSQLPORT ? "✓ Défini" : "✗ Non défini");
+    console.log("- DATABASE_URL:", process.env.DATABASE_URL ? "✓ Défini" : "✗ Non défini");
+    console.log("- NODE_ENV:", process.env.NODE_ENV || 'non défini');
   });
 
 module.exports = pool;
