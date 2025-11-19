@@ -43,18 +43,18 @@ module.exports = function (pool) {
   // Ajout de cacheMiddleware pour optimiser les requêtes fréquentes
   // Ajout de cacheMiddleware pour optimiser les requêtes fréquentes
   router.get("/", cacheMiddleware(3600), async (req, res) => { 
-    let conn;
+    let client;
     try {
-      conn = await pool.getConnection();
-      const partners = await conn.query(
+      client = await pool.connect();
+      const partners = await client.query(
         "SELECT * FROM partners ORDER BY name ASC"
       );
-      res.json(partners);
+      res.json(partners.rows);
     } catch (err) {
       console.error("❌ Erreur GET /partners:", err);
       res.status(500).json({ error: "Erreur serveur: " + err.message });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 
@@ -63,7 +63,7 @@ module.exports = function (pool) {
   // @access  Private (Admin)
   // ⚠️ CORRECTION : Utilisation de 'protect' au lieu de 'verifyToken'
   router.post("/", protect, upload.single("logo"), async (req, res) => {
-    let conn;
+    let client;
     try {
       const { name, website_url } = req.body;
       let logo_url = null;
@@ -89,21 +89,21 @@ module.exports = function (pool) {
         logo_url = `/uploads/${newFilename}`;
       }
 
-      conn = await pool.getConnection();
-      const result = await conn.query(
-        "INSERT INTO partners (name, logo_url, website_url) VALUES (?, ?, ?)",
+      client = await pool.connect();
+      const result = await client.query(
+        "INSERT INTO partners (name, logo_url, website_url) VALUES ($1, $2, $3) RETURNING id",
         [name, logo_url, website_url]
       );
 
       res.status(201).json({
         message: "Partenaire ajouté",
-        id: result.insertId,
+        id: result.rows[0].id,
       });
     } catch (err) {
       console.error("❌ Erreur POST /partners:", err);
       res.status(500).json({ error: "Erreur serveur: " + err.message });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 
@@ -112,16 +112,16 @@ module.exports = function (pool) {
   // @access  Private (Admin)
   // ⚠️ CORRECTION : Utilisation de 'protect' au lieu de 'verifyToken'
   router.delete("/:id", protect, async (req, res) => {
-    let conn;
+    let client;
     try {
       const partnerId = req.params.id;
 
-      conn = await pool.getConnection();
-      const result = await conn.query("DELETE FROM partners WHERE id = ?", [
+      client = await pool.connect();
+      const result = await client.query("DELETE FROM partners WHERE id = $1", [
         partnerId,
       ]);
 
-      if (result.affectedRows === 0) {
+      if (result.rowCount === 0) {
         return res.status(404).json({ error: "Partenaire non trouvé" });
       }
 
@@ -130,7 +130,7 @@ module.exports = function (pool) {
       console.error("❌ Erreur DELETE /partners:", err);
       res.status(500).json({ error: "Erreur serveur" });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 
@@ -138,7 +138,7 @@ module.exports = function (pool) {
   // @route   PUT /api/partners/:id
   // @access  Private (Admin)
   router.put("/:id", protect, upload.single("logo"), async (req, res) => {
-    let conn;
+    let client;
     try {
       const partnerId = req.params.id;
       const { name, website_url } = req.body;
@@ -147,13 +147,14 @@ module.exports = function (pool) {
         return res.status(400).json({ error: "Le nom du partenaire est requis" });
       }
 
-      conn = await pool.getConnection();
+      client = await pool.connect();
 
       // Check if partner exists and get old logo URL
-      const [partner] = await conn.query("SELECT logo_url FROM partners WHERE id = ?", [partnerId]);
-      if (!partner) {
+      const partnerResult = await client.query("SELECT logo_url FROM partners WHERE id = $1", [partnerId]);
+      if (partnerResult.rows.length === 0) {
         return res.status(404).json({ error: "Partenaire non trouvé" });
       }
+      const partner = partnerResult.rows[0];
 
       let logo_url = partner.logo_url; // Keep old logo by default
 
@@ -179,12 +180,12 @@ module.exports = function (pool) {
         logo_url = `/uploads/${newFilename}`;
       }
 
-      const result = await conn.query(
-        "UPDATE partners SET name = ?, logo_url = ?, website_url = ? WHERE id = ?",
+      const result = await client.query(
+        "UPDATE partners SET name = $1, logo_url = $2, website_url = $3 WHERE id = $4",
         [name, logo_url, website_url, partnerId]
       );
 
-      if (result.affectedRows === 0) {
+      if (result.rowCount === 0) {
         return res.status(404).json({ error: "Partenaire non trouvé" });
       }
 
@@ -193,7 +194,7 @@ module.exports = function (pool) {
       console.error("❌ Erreur PUT /partners:", err);
       res.status(500).json({ error: "Erreur serveur: " + err.message });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 

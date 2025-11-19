@@ -16,9 +16,9 @@ module.exports = function (pool, JWT_SECRET, { verifyToken, authorizeRoles }) {
   // La protection par 'protect' ici signifie que seul un admin connecté peut enregistrer un NOUVEL admin
   router.post("/register-admin", adminAuth, async (req, res) => {
     const { name, email, password } = req.body;
-    let conn;
+    let client;
     try {
-      conn = await pool.getConnection();
+      client = await pool.connect();
 
       if (!name || !email || !password) {
         return res
@@ -27,22 +27,22 @@ module.exports = function (pool, JWT_SECRET, { verifyToken, authorizeRoles }) {
       }
 
       // 1. Vérifier si l'admin existe déjà
-      const [existing] = await conn.query(
-        "SELECT id FROM admins WHERE email = ?",
+      const existing = await client.query(
+        "SELECT id FROM admins WHERE email = $1",
         [email]
       );
-      if (existing.length > 0) {
+      if (existing.rows.length > 0) {
         return res.status(409).json({ error: "Cet email est déjà utilisé." });
       }
 
       // 2. Hacher le mot de passe et insérer
       const hash = await bcrypt.hash(password, 10); // Utilisez un salt plus sûr, par ex. 10
-      const result = await conn.query(
-        "INSERT INTO admins (name, email, password, role) VALUES (?, ?, ?, 'admin')", // Ajout d'un rôle par défaut
+      const result = await client.query(
+        "INSERT INTO admins (name, email, password, role) VALUES ($1, $2, $3, 'admin') RETURNING id", // Ajout d'un rôle par défaut
         [name, email, hash]
       );
 
-      const newAdminId = result.insertId;
+      const newAdminId = result.rows[0].id;
       const token = signToken(
         { id: newAdminId, email: email, name: name },
         JWT_SECRET
@@ -59,34 +59,34 @@ module.exports = function (pool, JWT_SECRET, { verifyToken, authorizeRoles }) {
         .status(500)
         .json({ error: "Une erreur est survenue lors de l'inscription." });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 
   // POST /api/auth/login-admin
   router.post("/login-admin", async (req, res) => {
     const { email, password } = req.body;
-    let conn;
+    let client;
     try {
       console.log("Login attempt with email:", email); // DEBUG
       if (!email || !password) {
         return res.status(400).json({ error: "Email et mot de passe requis" });
       }
 
-      conn = await pool.getConnection();
-      const rows = await conn.query("SELECT * FROM admins WHERE email = ?", [
+      client = await pool.connect();
+      const result = await client.query("SELECT * FROM admins WHERE email = $1", [
         email,
       ]);
 
       // 1) Vérifier si l'admin existe
-      if (rows.length === 0) {
+      if (result.rows.length === 0) {
         console.log("Admin not found for email:", email); // DEBUG
         return res
           .status(401)
           .json({ error: "Email ou mot de passe incorrect" });
       }
 
-      const admin = rows[0];
+      const admin = result.rows[0];
       console.log("Admin found:", admin); // DEBUG
 
       // 2) Vérifier si l'admin existe VRAIMENT avant de lire son mot de passe
@@ -141,7 +141,7 @@ module.exports = function (pool, JWT_SECRET, { verifyToken, authorizeRoles }) {
         .status(500)
         .json({ error: "Une erreur est survenue sur le serveur." });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 

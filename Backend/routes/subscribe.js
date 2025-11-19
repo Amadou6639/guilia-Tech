@@ -11,17 +11,17 @@ module.exports = function (pool) {
       return res.status(400).json({ error: "L'adresse email est requise." });
     }
 
-    let conn;
+    let client;
     try {
-      conn = await pool.getConnection();
+      client = await pool.connect();
 
       // Vérifier si l'email existe déjà
-      const existingSubscriber = await conn.query(
-        "SELECT id FROM subscribers WHERE email = ?",
+      const existingSubscriber = await client.query(
+        "SELECT id FROM subscribers WHERE email = $1",
         [email]
       );
 
-      if (existingSubscriber.length > 0) {
+      if (existingSubscriber.rows.length > 0) {
         return res
           .status(409)
           .json({ error: "Cette adresse email est déjà abonnée." });
@@ -31,19 +31,19 @@ module.exports = function (pool) {
       const token = crypto.randomBytes(20).toString('hex');
 
       // Insérer le nouvel abonné avec le token
-      const result = await conn.query(
-        "INSERT INTO subscribers (email, token) VALUES (?, ?)",
+      const result = await client.query(
+        "INSERT INTO subscribers (email, token) VALUES ($1, $2) RETURNING id",
         [email, token]
       );
 
       res
         .status(201)
-        .json({ message: "Abonnement réussi ! Un email de confirmation a été envoyé.", id: result.insertId });
+        .json({ message: "Abonnement réussi ! Un email de confirmation a été envoyé.", id: result.rows[0].id });
     } catch (err) {
       console.error("❌ Erreur POST /api/subscribe:", err);
       res.status(500).json({ error: "Erreur serveur lors de l'abonnement." });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 

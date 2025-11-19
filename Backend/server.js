@@ -134,14 +134,14 @@ app.get("/api/health", async (req, res) => {
     
     if (pool) {
       try {
-        const conn = await pool.getConnection();
-        const result = await conn.query("SELECT 1 as test, NOW() as db_time, DATABASE() as db_name, VERSION() as version");
-        conn.release();
+        const client = await pool.connect();
+        const result = await client.query("SELECT 1 as test, NOW() as db_time, current_database() as db_name, version() as version");
+        client.release();
         dbStatus = "Connecté";
         dbInfo = {
-          name: result[0].db_name,
-          time: result[0].db_time,
-          version: result[0].version
+          name: result.rows[0].db_name,
+          time: result.rows[0].db_time,
+          version: result.rows[0].version
         };
       } catch (dbError) {
         dbStatus = `Erreur: ${dbError.message}`;
@@ -199,20 +199,20 @@ app.get("/api/test-db", async (req, res) => {
       });
     }
 
-    const conn = await pool.getConnection();
-    const tables = await conn.query(`
-      SELECT TABLE_NAME as table_name 
-      FROM INFORMATION_SCHEMA.TABLES 
-      WHERE TABLE_SCHEMA = DATABASE()
+    const client = await pool.connect();
+    const tables = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
     `);
     
-    conn.release();
+    client.release();
     
     res.json({
       status: "success",
       database: "Connecté avec succès",
-      tables_count: tables.length,
-      tables: tables.map(t => t.table_name),
+      tables_count: tables.rows.length,
+      tables: tables.rows.map(t => t.table_name),
       message: "✅ Base de données opérationnelle"
     });
   } catch (error) {
@@ -272,12 +272,12 @@ const startServer = async () => {
     // Test de connexion à la base de données si configurée
     if (pool) {
       try {
-        const conn = await pool.getConnection();
-        const dbInfo = await conn.query("SELECT DATABASE() as db_name, VERSION() as version, NOW() as server_time");
+        const client = await pool.connect();
+        const dbInfo = await client.query("SELECT current_database() as db_name, version() as version, NOW() as server_time");
         console.log("✅ Connexion à la base de données réussie");
-        console.log(`📊 Base: ${dbInfo[0].db_name}`);
-        console.log(`🔧 Version DB: ${dbInfo[0].version}`);
-        conn.release();
+        console.log(`📊 Base: ${dbInfo.rows[0].db_name}`);
+        console.log(`🔧 Version DB: ${dbInfo.rows[0].version}`);
+        client.release();
       } catch (dbError) {
         console.log("⚠️ Base de données non disponible:", dbError.message);
         console.log("💡 Configurez DATABASE_URL dans les variables d'environnement Render");
