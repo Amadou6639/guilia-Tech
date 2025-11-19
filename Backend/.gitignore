@@ -28,7 +28,9 @@ yarn-debug.log*
 /uploads
 .env
 *.log
-/prisma/migrations
+## Keep Prisma migrations in the repo for production migration deployments
+# previously migrations were ignored; enable them to be committed
+!prisma/migrations/
 .cache
 .tmp
 temp/
