@@ -46,6 +46,136 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ========== ROUTES TEMPORAIRES POUR DÉBLOQUER L'APPLICATION ==========
+
+// Route temporaire pour les services publics
+app.get('/api/services/public', async (req, res) => {
+  try {
+    console.log("📦 Route temporaire services/public appelée");
+    res.json([
+      { 
+        id: 1, 
+        name: "Développement Web", 
+        description: "Création de sites web et applications modernes",
+        image: "/images/service-web.jpg",
+        active: true
+      },
+      { 
+        id: 2, 
+        name: "Formation Digitale", 
+        description: "Formations sur les technologies numériques",
+        image: "/images/service-formation.jpg", 
+        active: true
+      },
+      { 
+        id: 3, 
+        name: "Conseil IT", 
+        description: "Audit et optimisation de vos systèmes informatiques",
+        image: "/images/service-conseil.jpg",
+        active: true
+      }
+    ]);
+  } catch (error) {
+    console.error("Erreur route temporaire services:", error);
+    res.status(500).json({ error: "Erreur serveur temporaire" });
+  }
+});
+
+// Route temporaire pour le blog
+app.get('/api/blog', async (req, res) => {
+  try {
+    console.log("📝 Route temporaire blog appelée");
+    res.json([
+      {
+        id: 1,
+        title: "Bienvenue sur Guilia Tech",
+        excerpt: "Découvrez nos services et solutions innovantes",
+        content: "Contenu de l'article de bienvenue...",
+        image: "/images/blog-welcome.jpg",
+        created_at: new Date().toISOString(),
+        published: true
+      },
+      {
+        id: 2, 
+        title: "Les tendances tech 2024",
+        excerpt: "Les technologies qui vont transformer votre entreprise",
+        content: "Contenu sur les tendances technologiques...",
+        image: "/images/blog-tendances.jpg",
+        created_at: new Date().toISOString(),
+        published: true
+      }
+    ]);
+  } catch (error) {
+    console.error("Erreur route temporaire blog:", error);
+    res.status(500).json({ error: "Erreur serveur temporaire" });
+  }
+});
+
+// Route temporaire pour les formations
+app.get('/api/trainings', async (req, res) => {
+  try {
+    console.log("🎓 Route temporaire trainings appelée");
+    res.json([
+      {
+        id: 1,
+        title: "React Avancé",
+        description: "Maîtrisez React avec les hooks et le state management",
+        duration: "3 jours",
+        level: "Avancé",
+        image: "/images/formation-react.jpg",
+        active: true
+      },
+      {
+        id: 2,
+        title: "Node.js & Express",
+        description: "Créez des APIs robustes avec Node.js et Express",
+        duration: "2 jours", 
+        level: "Intermédiaire",
+        image: "/images/formation-node.jpg",
+        active: true
+      }
+    ]);
+  } catch (error) {
+    console.error("Erreur route temporaire trainings:", error);
+    res.status(500).json({ error: "Erreur serveur temporaire" });
+  }
+});
+
+// Route temporaire pour les partenaires
+app.get('/api/partners', async (req, res) => {
+  try {
+    console.log("🤝 Route temporaire partners appelée");
+    res.json([
+      {
+        id: 1,
+        name: "Tech Solutions Inc.",
+        logo_url: "/images/partner-tech.png",
+        website: "https://techsolutions.com",
+        active: true
+      },
+      {
+        id: 2,
+        name: "Digital Innovators",
+        logo_url: "/images/partner-digital.png", 
+        website: "https://digitalinnovators.com",
+        active: true
+      },
+      {
+        id: 3,
+        name: "Web Masters",
+        logo_url: "/images/partner-web.png",
+        website: "https://webmasters.com",
+        active: true
+      }
+    ]);
+  } catch (error) {
+    console.error("Erreur route temporaire partners:", error);
+    res.status(500).json({ error: "Erreur serveur temporaire" });
+  }
+});
+
+// ========== FIN DES ROUTES TEMPORAIRES ==========
+
 // Route racine pour Render
 app.get("/", (req, res) => {
   res.json({ 
