@@ -17,7 +17,7 @@ const TrainingTeaser = () => {
     const fetchTraining = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:5000/api/trainings",
+          "`${process.env.REACT_APP_API_URL}/api`/trainings",
           { headers: getAuthHeader() }
         );
         // Assuming the API returns an array of trainings, take the first one

@@ -95,7 +95,7 @@ export default function AdminDashboard() {
     setPostLoading(true);
     setPostError("");
     try {
-      const response = await fetch("http://localhost:5000/api/blog", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/blog", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression de cet article ?")) return;
     setDeletingPostId(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/blog/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/blog/${id}`, {
         method: "DELETE",
         headers: getAuthHeader(),
       });
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
       setLoading(true);
       setError("");
 
-      let url = `http://localhost:5000/api/requests?page=${page}&limit=5`;
+      let url = `${process.env.REACT_APP_API_URL}/api/requests?page=${page}&limit=5`;
       if (search && search.trim() !== "") {
         url += `&search=${encodeURIComponent(search.trim())}`;
       }
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
     setPartnerLoading(true);
     setPartnerError("");
     try {
-      const response = await fetch("http://localhost:5000/api/partners", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
     setTrainingLoading(true);
     setTrainingError("");
     try {
-      const response = await fetch("http://localhost:5000/api/trainings", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/trainings", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -220,7 +220,7 @@ export default function AdminDashboard() {
     setServiceLoading(true);
     setServiceError("");
     try {
-      const response = await fetch("http://localhost:5000/api/services", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/services", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
     setDepartmentLoading(true);
     setDepartmentError("");
     try {
-      const response = await fetch("http://localhost:5000/api/departments", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
     setValidatingId(id);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/requests/${id}/validate`,
+        `${process.env.REACT_APP_API_URL}/api/requests/${id}/validate`,
         {
           method: "PUT",
           headers: getAuthHeader(),
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression ?")) return;
     setDeletingId(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/requests/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/requests/${id}`, {
         method: "DELETE",
         headers: getAuthHeader(),
       });
@@ -359,7 +359,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/partners", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners", {
         method: "POST",
         headers: {
           ...getAuthHeader(),
@@ -386,7 +386,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression de ce partenaire ?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/partners/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/partners/${id}`, {
         method: "DELETE",
         headers: getAuthHeader(),
       });
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
     }
     setAddingTraining(true);
     try {
-      const response = await fetch("http://localhost:5000/api/trainings", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/trainings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -446,7 +446,7 @@ export default function AdminDashboard() {
     setDeletingTrainingId(id);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/trainings/${id}`,
+        `${process.env.REACT_APP_API_URL}/api/trainings/${id}`,
         {
           method: "DELETE",
           headers: getAuthHeader(),
@@ -472,7 +472,7 @@ export default function AdminDashboard() {
     }
     setAddingService(true);
     try {
-      const response = await fetch("http://localhost:5000/api/services", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/services", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -506,7 +506,7 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression de ce service ?")) return;
     setDeletingServiceId(id);
     try {
-      const response = await fetch(`http://localhost:5000/api/services/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/services/${id}`, {
         method: "DELETE",
         headers: getAuthHeader(),
       });
@@ -534,7 +534,7 @@ export default function AdminDashboard() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/departments", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -566,7 +566,7 @@ export default function AdminDashboard() {
     setDeletingDepartmentId(id);
     try {
       const response = await fetch(
-        `http://localhost:5000/api/departments/${id}`,
+        `${process.env.REACT_APP_API_URL}/api/departments/${id}`,
         {
           method: "DELETE",
           headers: getAuthHeader(),
@@ -617,7 +617,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/partners/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/partners/${id}`, {
         method: "PUT",
         headers: getAuthHeader(),
         body: formData,
@@ -679,7 +679,7 @@ export default function AdminDashboard() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/departments/${id}`,
+        `${process.env.REACT_APP_API_URL}/api/departments/${id}`,
         {
           method: "PUT",
           headers: getAuthHeader(),
@@ -736,7 +736,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/services/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/services/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -780,7 +780,7 @@ export default function AdminDashboard() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/departments/${department.id}/${type}`,
+        `${process.env.REACT_APP_API_URL}/api/departments/${department.id}/${type}`,
         {
           headers: getAuthHeader(),
         }
@@ -1095,7 +1095,7 @@ export default function AdminDashboard() {
                             src={
                               partner.logo_url.startsWith("data:")
                                 ? partner.logo_url
-                                : `http://localhost:5000${partner.logo_url}`
+                                : `${process.env.REACT_APP_API_URL}${partner.logo_url}`
                             }
                             alt={partner.name}
                             className="h-12 object-contain mt-2"
@@ -1145,7 +1145,7 @@ export default function AdminDashboard() {
                             src={
                               partner.logo_url.startsWith("data:")
                                 ? partner.logo_url
-                                : `http://localhost:5000${partner.logo_url}`
+                                : `${process.env.REACT_APP_API_URL}${partner.logo_url}`
                             }
                             alt={partner.name}
                             className="h-12 object-contain"
@@ -1712,7 +1712,7 @@ export default function AdminDashboard() {
               {detailModal.title.includes("Employés") &&
                 detailModal.items.length > 0 && (
                   <a
-                    href={`http://localhost:5000/api/departments/${detailModal.contextId}/employees/export`}
+                    href={`${process.env.REACT_APP_API_URL}/api/departments/${detailModal.contextId}/employees/export`}
                     download
                     target="_blank"
                     rel="noopener noreferrer"

@@ -64,7 +64,7 @@ function AppContent() {
         return;
       }
       try {
-        await fetch("http://localhost:5000/api/visits", {
+        await fetch("`${process.env.REACT_APP_API_URL}/api`/visits", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

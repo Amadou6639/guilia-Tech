@@ -25,7 +25,7 @@ export default function HRManagement() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://localhost:5000/api/employees", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/employees", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -42,7 +42,7 @@ export default function HRManagement() {
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/departments", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
         headers: getAuthHeader(),
       });
       if (!response.ok) {
@@ -70,7 +70,7 @@ export default function HRManagement() {
 
   const handleAddEmployee = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/employees", {
+      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/employees", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +101,7 @@ export default function HRManagement() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employees/${editingEmployee.id}`,
+        ``${process.env.REACT_APP_API_URL}/api`/employees/${editingEmployee.id}`,
         {
           method: "PUT",
           headers: {
@@ -138,7 +138,7 @@ export default function HRManagement() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employees/${id}`,
+        ``${process.env.REACT_APP_API_URL}/api`/employees/${id}`,
         {
           method: "DELETE",
           headers: getAuthHeader(),
@@ -256,7 +256,7 @@ export default function HRManagement() {
                 <tr key={employee.id}>
                   <td className="border p-2 text-center">
                     <img
-                      src={employee.photo ? `http://localhost:5000${employee.photo}` : '/default-avatar.png'}
+                      src={employee.photo ? ``${process.env.REACT_APP_API_URL}`${employee.photo}` : '/default-avatar.png'}
                       alt={employee.name}
                       className="w-12 h-12 rounded-full object-cover mx-auto"
                       onError={(e) => { e.target.onerror = null; e.target.src='/default-avatar.png'; }}

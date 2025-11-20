@@ -8,7 +8,7 @@ const FeaturedPartners = () => {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/partners");
+        const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners");
         if (!response.ok) {
           throw new Error("Failed to fetch partners");
         }
@@ -79,7 +79,7 @@ const FeaturedPartners = () => {
                   src={
                     partner.logo_url.startsWith("data:")
                       ? partner.logo_url
-                      : `http://localhost:5000${partner.logo_url}`
+                      : `${process.env.REACT_APP_API_URL}${partner.logo_url}`
                   }
                   alt={partner.name}
                   className="h-24 w-48 object-contain mb-4"
