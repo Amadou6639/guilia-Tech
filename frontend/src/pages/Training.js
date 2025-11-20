@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Footer from "../components/Footer";
+import api from '../api';
 
 const trainings = [
   {
@@ -149,16 +150,9 @@ export default function Training() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(
-          errorData.error || "Erreur lors de l'envoi de la demande."
-        );
+      const res = await api.post('/api/requests', requestBody);
+      if (!res || (res.status && res.status >= 400)) {
+        throw new Error('Erreur lors de l'envoi de la demande.');
       }
       setSent(true);
     } catch (err) {

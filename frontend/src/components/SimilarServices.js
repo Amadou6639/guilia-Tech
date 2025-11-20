@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import api from "../api";
 import { Link } from "react-router-dom";
 
 export default function SimilarServices({ currentServiceId }) {
@@ -11,13 +12,10 @@ export default function SimilarServices({ currentServiceId }) {
     const fetchSimilarServices = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/services/${currentServiceId}/similar?limit=3`
+        const response = await api.get(
+          `/api/services/${currentServiceId}/similar?limit=3`
         );
-        if (!response.ok) {
-          throw new Error("Erreur de chargement des services similaires.");
-        }
-        const data = await response.json();
+        const data = response.data;
         setServices(data.services || []);
       } catch (err) {
         console.error(err);

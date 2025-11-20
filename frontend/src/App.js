@@ -35,6 +35,7 @@ import Contact from "./pages/Contact";
 import Footer from "./components/Footer";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import api from "./api";
 import { ActiveSectionProvider } from "./pages/ActiveSectionContext";
 import Training from "./pages/Training";
 import Subscribe from "./pages/Subscribe";
@@ -64,6 +65,7 @@ function AppContent() {
         return;
       }
       try {
+<<<<<<< HEAD
         await fetch("`${process.env.REACT_APP_API_URL}/api`/visits", {
           method: "POST",
           headers: {
@@ -71,6 +73,9 @@ function AppContent() {
           },
           body: JSON.stringify({ page: location.pathname }),
         });
+=======
+        await api.post("/api/visits", { page: location.pathname });
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
       } catch (error) {
         console.error("Erreur lors du suivi de la visite:", error);
       }

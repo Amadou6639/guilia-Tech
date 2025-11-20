@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import api from "../api";
 
 export default function NewsletterSubscription() {
   const [email, setEmail] = useState("");
@@ -16,21 +17,18 @@ export default function NewsletterSubscription() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/subscribers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, fullName, phoneNumber }),
+      const response = await api.post("/api/subscribers", {
+        email,
+        fullName,
+        phoneNumber,
       });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de l'abonnement.");
+      if (!response || (response.status && response.status >= 400)) {
+        throw new Error(data?.error || "Erreur lors de l'abonnement.");
       }
 
-      setMessage(data.message);
+      setMessage(data.message || "Vous êtes bien inscrit.");
       setSubmitted(true);
     } catch (err) {
       setError(err.message);
@@ -48,14 +46,24 @@ export default function NewsletterSubscription() {
       {submitted ? (
         <div className="bg-green-100 text-green-800 p-4 rounded text-center">
           <h3 className="font-bold text-lg">{message}</h3>
-          <p className="mt-2">Veuillez consulter votre boîte de réception pour confirmer votre abonnement.</p>
-          <p className="mt-2 text-sm text-gray-600">Si vous ne recevez pas l'email, vérifiez votre dossier de spams.</p>
+          <p className="mt-2">
+            Veuillez consulter votre boîte de réception pour confirmer votre
+            abonnement.
+          </p>
+          <p className="mt-2 text-sm text-gray-600">
+            Si vous ne recevez pas l'email, vérifiez votre dossier de spams.
+          </p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-gray-600">Recevez nos dernières actualités et offres directement dans votre boîte mail.</p>
+          <p className="text-gray-600">
+            Recevez nos dernières actualités et offres directement dans votre
+            boîte mail.
+          </p>
           <div>
-            <label htmlFor="fullName-newsletter" className="sr-only">Nom complet</label>
+            <label htmlFor="fullName-newsletter" className="sr-only">
+              Nom complet
+            </label>
             <input
               id="fullName-newsletter"
               type="text"
@@ -66,7 +74,9 @@ export default function NewsletterSubscription() {
             />
           </div>
           <div>
-            <label htmlFor="email-newsletter" className="sr-only">Email</label>
+            <label htmlFor="email-newsletter" className="sr-only">
+              Email
+            </label>
             <input
               id="email-newsletter"
               type="email"
@@ -78,7 +88,9 @@ export default function NewsletterSubscription() {
             />
           </div>
           <div>
-            <label htmlFor="phoneNumber-newsletter" className="sr-only">Numéro de téléphone</label>
+            <label htmlFor="phoneNumber-newsletter" className="sr-only">
+              Numéro de téléphone
+            </label>
             <input
               id="phoneNumber-newsletter"
               type="tel"

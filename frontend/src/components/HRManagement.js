@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import api, { API_BASE_URL } from "../api";
 
 export default function HRManagement() {
   const [employees, setEmployees] = useState([]);
@@ -25,13 +26,14 @@ export default function HRManagement() {
     setLoading(true);
     setError("");
     try {
+<<<<<<< HEAD
       const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/employees", {
+=======
+      const response = await api.get("/api/employees", {
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
         headers: getAuthHeader(),
       });
-      if (!response.ok) {
-        throw new Error("Erreur de chargement des employés");
-      }
-      const data = await response.json();
+      const data = response.data;
       setEmployees(data.employees || []);
     } catch (err) {
       setError(err.message);
@@ -42,13 +44,14 @@ export default function HRManagement() {
 
   const fetchDepartments = useCallback(async () => {
     try {
+<<<<<<< HEAD
       const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
+=======
+      const response = await api.get("/api/departments", {
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
         headers: getAuthHeader(),
       });
-      if (!response.ok) {
-        throw new Error("Erreur de chargement des départements");
-      }
-      const data = await response.json();
+      const data = response.data;
       setDepartments(data);
     } catch (err) {
       setError(
@@ -70,22 +73,28 @@ export default function HRManagement() {
 
   const handleAddEmployee = async () => {
     try {
+<<<<<<< HEAD
       const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/employees", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeader(),
+=======
+      const response = await api.post(
+        "/api/employees",
+        {
+          name: newEmployee.name,
+          email: newEmployee.email,
+          position: newEmployee.position,
+          phone: newEmployee.phone,
+          address: newEmployee.address,
+          department_id: newEmployee.department_id,
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
         },
-                  body: JSON.stringify({
-                    name: newEmployee.name,
-                    email: newEmployee.email,
-                    position: newEmployee.position,
-                    phone: newEmployee.phone,
-                    address: newEmployee.address,
-                    department_id: newEmployee.department_id,
-                  }),      });
+        { headers: { "Content-Type": "application/json", ...getAuthHeader() } }
+      );
 
-      if (!response.ok) {
+      if (!response || (response.status && response.status >= 400)) {
         throw new Error("Erreur lors de l'ajout de l'employé");
       }
 
@@ -100,29 +109,28 @@ export default function HRManagement() {
     if (!editingEmployee) return;
 
     try {
+<<<<<<< HEAD
       const response = await fetch(
         ``${process.env.REACT_APP_API_URL}/api`/employees/${editingEmployee.id}`,
+=======
+      const response = await api.put(
+        `/api/employees/${editingEmployee.id}`,
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeader(),
-          },
-          body: JSON.stringify({
-            name: editingEmployee.name,
-            email: editingEmployee.email,
-            position: editingEmployee.position,
-            phone: editingEmployee.phone,
-            address: editingEmployee.address,
-            department_id: editingEmployee.department_id,
-          }),
-        }
+          name: editingEmployee.name,
+          email: editingEmployee.email,
+          position: editingEmployee.position,
+          phone: editingEmployee.phone,
+          address: editingEmployee.address,
+          department_id: editingEmployee.department_id,
+        },
+        { headers: { "Content-Type": "application/json", ...getAuthHeader() } }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!response || (response.status && response.status >= 400)) {
+        const errorData = response.data;
         throw new Error(
-          errorData.error || "Erreur lors de la mise à jour de l'employé"
+          errorData?.error || "Erreur lors de la mise à jour de l'employé"
         );
       }
 
@@ -137,6 +145,7 @@ export default function HRManagement() {
     if (!window.confirm("Confirmer la suppression de cet employé ?")) return;
 
     try {
+<<<<<<< HEAD
       const response = await fetch(
         ``${process.env.REACT_APP_API_URL}/api`/employees/${id}`,
         {
@@ -144,8 +153,13 @@ export default function HRManagement() {
           headers: getAuthHeader(),
         }
       );
+=======
+      const response = await api.delete(`/api/employees/${id}`, {
+        headers: getAuthHeader(),
+      });
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
 
-      if (!response.ok) {
+      if (!response || (response.status && response.status >= 400)) {
         throw new Error("Erreur lors de la suppression de l'employé");
       }
 
@@ -256,10 +270,21 @@ export default function HRManagement() {
                 <tr key={employee.id}>
                   <td className="border p-2 text-center">
                     <img
+<<<<<<< HEAD
                       src={employee.photo ? ``${process.env.REACT_APP_API_URL}`${employee.photo}` : '/default-avatar.png'}
+=======
+                      src={
+                        employee.photo
+                          ? `${API_BASE_URL}${employee.photo}`
+                          : "/default-avatar.png"
+                      }
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
                       alt={employee.name}
                       className="w-12 h-12 rounded-full object-cover mx-auto"
-                      onError={(e) => { e.target.onerror = null; e.target.src='/default-avatar.png'; }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/default-avatar.png";
+                      }}
                     />
                   </td>
                   <td className="border p-3">

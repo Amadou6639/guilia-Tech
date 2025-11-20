@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Footer from "../components/Footer";
+import api from "../api";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -31,13 +32,9 @@ export default function Contact() {
     try {
       // Note: L'endpoint /api/contact n'existe peut-être pas encore sur votre backend.
       // Il faudra le créer pour que le formulaire fonctionne.
-      const response = await fetch("http://localhost:5000/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await api.post("/api/contact", formData);
 
-      if (!response.ok) {
+      if (!response || (response.status && response.status >= 400)) {
         throw new Error("L'envoi du message a échoué. Veuillez réessayer.");
       }
 
@@ -230,7 +227,6 @@ export default function Contact() {
           </div>
         </section>
       </div>
-      
     </>
   );
 }

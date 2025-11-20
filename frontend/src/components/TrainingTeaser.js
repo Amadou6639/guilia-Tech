@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import { useTranslation } from "react-i18next";
 
 const TrainingTeaser = () => {
@@ -16,10 +16,16 @@ const TrainingTeaser = () => {
   useEffect(() => {
     const fetchTraining = async () => {
       try {
+<<<<<<< HEAD
         const response = await axios.get(
           "`${process.env.REACT_APP_API_URL}/api`/trainings",
           { headers: getAuthHeader() }
         );
+=======
+        const response = await api.get("/api/trainings", {
+          headers: getAuthHeader(),
+        });
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
         // Assuming the API returns an array of trainings, take the first one
         if (response.data && response.data.length > 0) {
           setTraining(response.data[0]);
@@ -46,7 +52,7 @@ const TrainingTeaser = () => {
 
   // Fonction pour tronquer la description et garder un aperçu court
   const truncateDescription = (text, length = 180) => {
-    if (!text || typeof text !== 'string') return '';
+    if (!text || typeof text !== "string") return "";
     if (text.length <= length) return text;
     return text.substring(0, length) + "...";
   };

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import api, { API_BASE_URL } from "../api";
 
 const FeaturedPartners = () => {
   const [partners, setPartners] = useState([]);
@@ -8,11 +9,16 @@ const FeaturedPartners = () => {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
+<<<<<<< HEAD
         const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners");
         if (!response.ok) {
           throw new Error("Failed to fetch partners");
         }
         const data = await response.json();
+=======
+        const response = await api.get("/api/partners");
+        const data = response.data;
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
         // Sort partners by ID in descending order and take the first 4
         const latestPartners = data.sort((a, b) => b.id - a.id).slice(0, 4);
         setPartners(latestPartners);
@@ -79,7 +85,11 @@ const FeaturedPartners = () => {
                   src={
                     partner.logo_url.startsWith("data:")
                       ? partner.logo_url
+<<<<<<< HEAD
                       : `${process.env.REACT_APP_API_URL}${partner.logo_url}`
+=======
+                      : `${API_BASE_URL}${partner.logo_url}`
+>>>>>>> 0f261a1 (refactor(api): centralize API base URL and replace direct http://localhost:5000 usages)
                   }
                   alt={partner.name}
                   className="h-24 w-48 object-contain mb-4"

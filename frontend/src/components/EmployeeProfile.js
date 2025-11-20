@@ -14,6 +14,7 @@ import {
   FaFileAlt,
   FaUpload,
 } from "react-icons/fa";
+import api, { API_BASE_URL } from "../api";
 
 export default function EmployeeProfile() {
   const { id } = useParams();
@@ -44,16 +45,13 @@ export default function EmployeeProfile() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/employees/${id}`,
-        {
-          headers: getAuthHeader(),
-        }
-      );
-      if (!response.ok) {
+      const response = await api.get(`/api/employees/${id}`, {
+        headers: getAuthHeader(),
+      });
+      const data = response.data;
+      if (!response || (response.status && response.status >= 400) || !data) {
         throw new Error("Erreur de chargement du profil de l'employé.");
       }
-      const data = await response.json();
       setEmployee(data);
     } catch (err) {
       setError(err.message);
@@ -64,16 +62,10 @@ export default function EmployeeProfile() {
 
   const fetchEmployeeLeaves = useCallback(async () => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/employees/${id}/leaves`,
-        {
-          headers: getAuthHeader(),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Erreur de chargement des congés de l'employé.");
-      }
-      const data = await response.json();
+      const response = await api.get(`/api/employees/${id}/leaves`, {
+        headers: getAuthHeader(),
+      });
+      const data = response.data;
       setLeaves(data);
     } catch (err) {
       // Ne pas bloquer l'affichage du profil si les congés ne chargent pas
@@ -94,18 +86,13 @@ export default function EmployeeProfile() {
     formData.append("photo", file);
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/employees/${id}/photo`,
-        {
-          method: "PUT",
-          headers: getAuthHeader(),
-          body: formData,
-        }
-      );
-      const data = await response.json();
-      if (!response.ok)
+      const response = await api.put(`/api/employees/${id}/photo`, formData, {
+        headers: getAuthHeader(),
+      });
+      const data = response.data;
+      if (!response || (response.status && response.status >= 400))
         throw new Error(
-          data.error || "Erreur lors de la mise à jour de la photo."
+          data?.error || "Erreur lors de la mise à jour de la photo."
         );
       setEmployee((prev) => ({ ...prev, photo: data.photoUrl }));
     } catch (err) {
@@ -150,7 +137,7 @@ export default function EmployeeProfile() {
             <label htmlFor="photo-upload" className="cursor-pointer">
               {employee.photo ? (
                 <img
-                  src={`http://localhost:5000${employee.photo}`}
+                  src={`${API_BASE_URL}${employee.photo}`}
                   alt={employee.name}
                   className="w-24 h-24 rounded-full object-cover mb-4 md:mb-0 md:mr-8 border-4 border-gray-200 group-hover:opacity-75 transition-opacity"
                 />
@@ -212,7 +199,6 @@ export default function EmployeeProfile() {
             )}
           </ul>
         </div>
-        )}
         {activeTab === "leaves" && (
           <div>
             <h3 className="text-xl font-semibold text-gray-700 mb-4">
@@ -298,7 +284,7 @@ export default function EmployeeProfile() {
                   >
                     <div>
                       <a
-                        href={`http://localhost:5000${doc.file_path}`}
+                        href={`${API_BASE_URL}${doc.file_path}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-medium text-blue-600 hover:underline"
