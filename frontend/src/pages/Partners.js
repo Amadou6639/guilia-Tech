@@ -1,3 +1,4 @@
+import { API_URL, API_URL_WITH_PATH } from '../config/api';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer';
@@ -11,7 +12,7 @@ const PartnersPage = () => {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/partners');
+        const response = await fetch(`${API_URL_WITH_PATH}/partners`);
         if (!response.ok) {
           throw new Error('Échec du chargement des partenaires');
         }
@@ -54,7 +55,7 @@ const PartnersPage = () => {
               {partners.map((partner) => (
                 <a href={formatUrl(partner.website_url)} key={partner.id} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-lg text-center hover:shadow-xl transition-shadow">
                   {partner.logo_url ? (
-                    <img src={partner.logo_url.startsWith('data:') ? partner.logo_url : `http://localhost:5000${partner.logo_url}`} alt={partner.name} className="h-24 object-contain mb-4" />
+                    <img src={partner.logo_url.startsWith('data:') ? partner.logo_url : `${API_URL}${partner.logo_url}`} alt={partner.name} className="h-24 object-contain mb-4" />
                   ) : (
                     <div className="h-24 flex items-center justify-center mb-4">
                       <span className="text-5xl text-gray-300">🏢</span>

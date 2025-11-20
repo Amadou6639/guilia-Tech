@@ -1,3 +1,4 @@
+import { API_URL_WITH_PATH } from '../config/api';
 import React, { useState, useEffect } from "react";
 import Footer from "../components/Footer";
 import { Link } from "react-router-dom";
@@ -11,7 +12,7 @@ export default function Services() {
     const fetchServices = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/services/public"
+          `${API_URL_WITH_PATH}/services/public`
         );
         if (!response.ok) {
           throw new Error("Erreur de chargement des services.");

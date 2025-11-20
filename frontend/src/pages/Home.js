@@ -1,3 +1,4 @@
+import { API_URL_WITH_PATH } from '../config/api';
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
@@ -113,7 +114,7 @@ export default function Home() {
     const fetchLatestPosts = async () => {
       try {
         // L'API renvoie déjà les articles du plus récent au plus ancien
-        const response = await fetch("http://localhost:5000/api/blog");
+        const response = await fetch(`${API_URL_WITH_PATH}/blog`);
         if (!response.ok) {
           throw new Error("Impossible de charger les derniers articles.");
         }
@@ -133,7 +134,7 @@ export default function Home() {
       try {
         setServicesLoading(true);
         const response = await fetch(
-          "http://localhost:5000/api/services/public"
+         `${API_URL_WITH_PATH}/services/public`
         );
         if (!response.ok) {
           throw new Error("Impossible de charger les services.");

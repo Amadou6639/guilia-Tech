@@ -99,6 +99,7 @@ const EmployeeListModal = ({
   onEditEmployee,
   onAddEmployee,
   onAssignEmployee,
+  onExportEmployees,
 }) => {
   if (!isOpen) return null;
 
@@ -154,7 +155,10 @@ const EmployeeListModal = ({
         <div className="p-4 border-t bg-gray-50 flex justify-end gap-4">
           {!loading && employees.length > 0 && (
             <button
-              onClick={() => handleExportEmployees(departmentId, departmentName)}
+              onClick={() =>
+                onExportEmployees &&
+                onExportEmployees(departmentId, departmentName)
+              }
               className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"
             >
               Exporter en CSV
@@ -576,6 +580,65 @@ const Departments = () => {
     });
   };
 
+  // Export employees to CSV for a department
+  const handleExportEmployees = async (departmentId, departmentName) => {
+    try {
+      let employees = [];
+      if (
+        employeeListModal.departmentId === departmentId &&
+        employeeListModal.employees.length > 0
+      ) {
+        employees = employeeListModal.employees;
+      } else {
+        const res = await axios.get(
+          `${API_URL}/departments/${departmentId}/employees`,
+          {
+            headers: { Authorization: `Bearer ${authToken}` },
+          }
+        );
+        employees = res.data || [];
+      }
+
+      if (!employees || employees.length === 0) {
+        toast.info("Aucun employé à exporter.");
+        return;
+      }
+
+      const headers = ["ID", "Nom", "Email", "Poste", "Téléphone", "Adresse"];
+      const rows = employees.map((emp) => [
+        emp.id ?? "",
+        emp.name ?? "",
+        emp.email ?? "",
+        emp.position ?? "",
+        emp.phone ?? "",
+        emp.address ?? "",
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+        )
+        .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeName = (departmentName || departmentId || "department")
+        .toString()
+        .replace(/\s+/g, "_");
+      link.setAttribute("download", `employees_${safeName}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Export terminé.");
+    } catch (error) {
+      console.error("Erreur export CSV:", error);
+      toast.error("Erreur lors de l'export CSV.");
+    }
+  };
+
   const totalDepartments = departments.length;
   const totalServices = departments.reduce(
     (sum, dept) => sum + (dept.service_count || 0),
@@ -712,6 +775,7 @@ const Departments = () => {
         onEditEmployee={handleEditEmployee}
         onAddEmployee={handleOpenAddEmployeeModal}
         onAssignEmployee={handleOpenAssignEmployeeModal}
+        onExportEmployees={handleExportEmployees}
       />
 
       <AddEmployeeModal
