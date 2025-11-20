@@ -13,7 +13,7 @@ module.exports = function (pool) {
 
   // Enregistrer une visite de page
   router.post("/", async (req, res) => {
-    let conn;
+    let client;
     try {
       const { page, user_agent, referrer } = req.body;
 
@@ -21,9 +21,9 @@ module.exports = function (pool) {
         return res.status(400).json({ error: "La page est requise" });
       }
 
-      conn = await pool.getConnection();
-      await conn.query(
-        "INSERT INTO visits (page, user_agent, referrer) VALUES (?, ?, ?)",
+      client = await pool.connect();
+      await client.query(
+        "INSERT INTO visits (page, user_agent, referrer) VALUES ($1, $2, $3)",
         [page, user_agent || null, referrer || null]
       );
 
@@ -32,47 +32,48 @@ module.exports = function (pool) {
       console.error("❌ Erreur POST /visits:", err);
       res.status(500).json({ error: "Erreur serveur" });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 
   // Récupérer les statistiques de visites (protégé)
   router.get("/stats", protect, async (req, res) => {
-    let conn;
+    let client;
     try {
       const { period = "week" } = req.query; // day, week, month
 
-      conn = await pool.getConnection();
+      client = await pool.connect();
 
       // Déterminer l'intervalle de temps
       let interval;
       switch (period) {
         case "day":
-          interval = "1 DAY";
+          interval = "1 day";
           break;
         case "week":
-          interval = "7 DAY";
+          interval = "7 days";
           break;
         case "month":
-          interval = "30 DAY";
+          interval = "1 month";
           break;
         default:
-          interval = "7 DAY";
+          interval = "7 days";
       }
 
       // Nombre total de visites pour la période
-      // Ajout de la déstructuration pour garantir l'extraction du résultat
-      const [totalResult] = await conn.query(
-        `SELECT COUNT(*) as total FROM visits WHERE created_at >= DATE_SUB(NOW(), INTERVAL ${interval})`
+      const totalResult = await client.query(
+        `SELECT COUNT(*) as total FROM visits WHERE created_at >= NOW() - $1::interval`,
+        [interval]
       );
-      const totalVisits = Number(totalResult.total);
+      const totalVisits = Number(totalResult.rows[0].total);
 
       // Visites par page pour la période
-      const pagesResult = await conn.query(
-        `SELECT page, COUNT(*) as count FROM visits WHERE created_at >= DATE_SUB(NOW(), INTERVAL ${interval}) GROUP BY page ORDER BY count DESC`
+      const pagesResult = await client.query(
+        `SELECT page, COUNT(*) as count FROM visits WHERE created_at >= NOW() - $1::interval GROUP BY page ORDER BY count DESC`,
+        [interval]
       );
 
-      const visitsByPage = pagesResult.map((item) => ({
+      const visitsByPage = pagesResult.rows.map((item) => ({
         ...item,
         count: Number(item.count),
       }));
@@ -86,34 +87,34 @@ module.exports = function (pool) {
       console.error("❌ Erreur GET /visits/stats:", err.message, err.stack);
       res.status(500).json({ error: "Erreur serveur: " + err.message });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 
   // Récupérer toutes les visites (pour l'admin)
   router.get("/", protect, async (req, res) => {
-    let conn;
+    let client;
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 50;
       const offset = (page - 1) * limit;
 
-      conn = await pool.getConnection();
+      client = await pool.connect();
 
       // Total des visites
-      const [totalResult] = await conn.query(
+      const totalResult = await client.query(
         "SELECT COUNT(*) as total FROM visits"
       );
-      const total = Number(totalResult.total);
+      const total = Number(totalResult.rows[0].total);
 
       // Visites paginées
-      const visits = await conn.query(
-        "SELECT * FROM visits ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      const visitsResult = await client.query(
+        "SELECT * FROM visits ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         [limit, offset]
       );
 
       res.json({
-        visits,
+        visits: visitsResult.rows,
         total,
         page,
         pages: Math.ceil(total / limit),
@@ -123,7 +124,7 @@ module.exports = function (pool) {
       console.error("❌ Erreur GET /visits:", err);
       res.status(500).json({ error: "Erreur serveur" });
     } finally {
-      if (conn) conn.release();
+      if (client) client.release();
     }
   });
 

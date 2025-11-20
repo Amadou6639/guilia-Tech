@@ -20,6 +20,18 @@
 
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+.yarn-error.log*
 
 /generated/prisma
+
+# --- AJOUTS POUR VOTRE PROJET ---
+/uploads
+.env
+*.log
+## Keep Prisma migrations in the repo for production migration deployments
+# previously migrations were ignored; enable them to be committed
+!prisma/migrations/
+.cache
+.tmp
+temp/
+dist/
