@@ -23,23 +23,23 @@ filesToFix.forEach(file => {
     // Remplacements
     content = content.replace(
       /http:\/\/localhost:5000\/api/g, 
-      '`${process.env.REACT_APP_API_URL}/api`'
+      `${process.env.REACT_APP_API_URL}/api`
     );
     
     content = content.replace(
       /"http:\/\/localhost:5000\/api/g, 
-      '"`${process.env.REACT_APP_API_URL}/api`'
+      `${process.env.REACT_APP_API_URL}/api`
     );
     
     content = content.replace(
       /'http:\/\/localhost:5000\/api/g, 
-      '\'`${process.env.REACT_APP_API_URL}/api`'
+      `\`${process.env.REACT_APP_API_URL}/api\``
     );
     
     // Pour les URLs avec chemin (comme les images)
     content = content.replace(
       /http:\/\/localhost:5000(?!\/api)/g, 
-      '`${process.env.REACT_APP_API_URL}`'
+      `${process.env.REACT_APP_API_URL}`
     );
     
     if (content !== originalContent) {

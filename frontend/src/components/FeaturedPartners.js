@@ -8,7 +8,9 @@ const FeaturedPartners = () => {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
-        const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners");
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/partners`
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch partners");
         }

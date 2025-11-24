@@ -31,9 +31,12 @@ export default function PostEditor() {
     if (!isEditing) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/blog/id/${id}`, {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/blog/id/${id}`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) throw new Error("Article non trouvé");
       const data = await response.json();
       // Assurer que la date est formatée en YYYY-MM-DD pour l'input type="date"
@@ -125,7 +128,7 @@ export default function PostEditor() {
     setError("");
 
     const url = isEditing
-      ? `http://localhost:5000/api/blog/${id}` // PUT /api/blog/:id
+      ? `${process.env.REACT_APP_API_URL}/blog/${id}` // PUT /api/blog/:id
       : "http://localhost:5000/api/blog";
     const method = isEditing ? "PUT" : "POST";
 

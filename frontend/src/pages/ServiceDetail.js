@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import NotFound from "./NotFound";
 import SimilarServices from "../components/SimilarServices";
 import Breadcrumbs from "../components/Breadcrumbs";
-import { useParams, useNavigate, Link } from "react-router-dom"; 
+import { useParams, useNavigate, Link } from "react-router-dom";
 const socialIcons = {
   facebook: (
     <svg fill="currentColor" viewBox="0 0 24 24" className="w-6 h-6">
@@ -56,7 +56,7 @@ export default function ServiceDetail() {
     const fetchService = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5000/api/services/${id}`
+          `${process.env.REACT_APP_API_URL}/services/${id}`
         );
         if (!response.ok) {
           if (response.status === 404) {

@@ -21,7 +21,7 @@ export default function AdminStats() {
       console.log("🔄 Tentative de connexion à l'API sur le port 5000...");
 
       const res = await fetch(
-        `http://localhost:5000/api/visits/stats?period=${period}`,
+        `${process.env.REACT_APP_API_URL}/visits/stats?period=${period}`,
         {
           headers: getAuthHeader(),
         }
@@ -105,7 +105,8 @@ export default function AdminStats() {
                 Ouvre un terminal dans le dossier <strong>Backend</strong>
               </li>
               <li>
-                Exécute : <code className="bg-gray-200 p-1 rounded">npm start</code>
+                Exécute :{" "}
+                <code className="bg-gray-200 p-1 rounded">npm start</code>
               </li>
               <li>Attends le message "🚀 Serveur démarré sur le port 5000"</li>
               <li>Actualise cette page</li>

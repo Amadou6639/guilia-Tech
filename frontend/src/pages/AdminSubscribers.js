@@ -75,7 +75,7 @@ export default function AdminSubscribers() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/subscribers/${subscriberId}`,
+        `${process.env.REACT_APP_API_URL}/subscribers/${subscriberId}`,
         {
           method: "DELETE",
           headers,

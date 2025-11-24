@@ -25,9 +25,12 @@ export default function HRManagement() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/employees", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/employees`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des employés");
       }
@@ -42,9 +45,12 @@ export default function HRManagement() {
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/departments`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des départements");
       }
@@ -70,20 +76,24 @@ export default function HRManagement() {
 
   const handleAddEmployee = async () => {
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/employees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
-                  body: JSON.stringify({
-                    name: newEmployee.name,
-                    email: newEmployee.email,
-                    position: newEmployee.position,
-                    phone: newEmployee.phone,
-                    address: newEmployee.address,
-                    department_id: newEmployee.department_id,
-                  }),      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/employees`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+          body: JSON.stringify({
+            name: newEmployee.name,
+            email: newEmployee.email,
+            position: newEmployee.position,
+            phone: newEmployee.phone,
+            address: newEmployee.address,
+            department_id: newEmployee.department_id,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de l'ajout de l'employé");
@@ -101,7 +111,7 @@ export default function HRManagement() {
 
     try {
       const response = await fetch(
-        ``${process.env.REACT_APP_API_URL}/api`/employees/${editingEmployee.id}`,
+        `${process.env.REACT_APP_API_URL}/api/employees/${editingEmployee.id}`,
         {
           method: "PUT",
           headers: {
@@ -138,7 +148,7 @@ export default function HRManagement() {
 
     try {
       const response = await fetch(
-        ``${process.env.REACT_APP_API_URL}/api`/employees/${id}`,
+        `${process.env.REACT_APP_API_URL}/api/employees/${id}`,
         {
           method: "DELETE",
           headers: getAuthHeader(),
@@ -256,10 +266,17 @@ export default function HRManagement() {
                 <tr key={employee.id}>
                   <td className="border p-2 text-center">
                     <img
-                      src={employee.photo ? ``${process.env.REACT_APP_API_URL}`${employee.photo}` : '/default-avatar.png'}
+                      src={
+                        employee.photo
+                          ? `${process.env.REACT_APP_API_URL}${employee.photo}`
+                          : "/default-avatar.png"
+                      }
                       alt={employee.name}
                       className="w-12 h-12 rounded-full object-cover mx-auto"
-                      onError={(e) => { e.target.onerror = null; e.target.src='/default-avatar.png'; }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/default-avatar.png";
+                      }}
                     />
                   </td>
                   <td className="border p-3">

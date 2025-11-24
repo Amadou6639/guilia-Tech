@@ -95,9 +95,12 @@ export default function AdminDashboard() {
     setPostLoading(true);
     setPostError("");
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/blog", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/blog`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des articles");
       }
@@ -114,10 +117,13 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression de cet article ?")) return;
     setDeletingPostId(id);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/blog/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/blog/${id}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeader(),
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) {
@@ -182,9 +188,12 @@ export default function AdminDashboard() {
     setPartnerLoading(true);
     setPartnerError("");
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/partners`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des partenaires");
       }
@@ -201,9 +210,12 @@ export default function AdminDashboard() {
     setTrainingLoading(true);
     setTrainingError("");
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/trainings", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/trainings`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des formations");
       }
@@ -220,9 +232,12 @@ export default function AdminDashboard() {
     setServiceLoading(true);
     setServiceError("");
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/services", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/services`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des services");
       }
@@ -239,9 +254,12 @@ export default function AdminDashboard() {
     setDepartmentLoading(true);
     setDepartmentError("");
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/departments`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok) {
         throw new Error("Erreur de chargement des départements");
       }
@@ -326,10 +344,13 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression ?")) return;
     setDeletingId(id);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/requests/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/requests/${id}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeader(),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de la suppression");
@@ -359,13 +380,16 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/partners", {
-        method: "POST",
-        headers: {
-          ...getAuthHeader(),
-        },
-        body: formData,
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/partners`,
+        {
+          method: "POST",
+          headers: {
+            ...getAuthHeader(),
+          },
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de l'ajout du partenaire");
@@ -386,10 +410,13 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression de ce partenaire ?")) return;
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/partners/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/partners/${id}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeader(),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de la suppression du partenaire");
@@ -412,17 +439,20 @@ export default function AdminDashboard() {
     }
     setAddingTraining(true);
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/trainings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          title: newTrainingTitle,
-          description: newTrainingDescription,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/trainings`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+          body: JSON.stringify({
+            title: newTrainingTitle,
+            description: newTrainingDescription,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de l'ajout de la formation");
@@ -472,18 +502,21 @@ export default function AdminDashboard() {
     }
     setAddingService(true);
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/services", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          title: newServiceTitle,
-          description: newServiceDescription,
-          icon: newServiceIcon,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/services`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+          body: JSON.stringify({
+            title: newServiceTitle,
+            description: newServiceDescription,
+            icon: newServiceIcon,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de l'ajout du service");
@@ -506,10 +539,13 @@ export default function AdminDashboard() {
     if (!window.confirm("Confirmer la suppression de ce service ?")) return;
     setDeletingServiceId(id);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/services/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeader(),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/services/${id}`,
+        {
+          method: "DELETE",
+          headers: getAuthHeader(),
+        }
+      );
       if (!response.ok)
         throw new Error("Erreur lors de la suppression du service");
       setConfirmMsg("Service supprimé avec succès.");
@@ -534,14 +570,17 @@ export default function AdminDashboard() {
     };
 
     try {
-      const response = await fetch("`${process.env.REACT_APP_API_URL}/api`/departments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify(departmentData),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/departments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+          body: JSON.stringify(departmentData),
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) {
@@ -617,11 +656,14 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/partners/${id}`, {
-        method: "PUT",
-        headers: getAuthHeader(),
-        body: formData,
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/partners/${id}`,
+        {
+          method: "PUT",
+          headers: getAuthHeader(),
+          body: formData,
+        }
+      );
 
       const data = await response.json();
       if (!response.ok) {
@@ -736,14 +778,17 @@ export default function AdminDashboard() {
     }
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/services/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify(editedServiceData),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/services/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+          body: JSON.stringify(editedServiceData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erreur lors de la mise à jour du service.");

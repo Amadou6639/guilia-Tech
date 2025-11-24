@@ -12,7 +12,7 @@ export default function SimilarServices({ currentServiceId }) {
       setLoading(true);
       try {
         const response = await fetch(
-          `http://localhost:5000/api/services/${currentServiceId}/similar?limit=3`
+          `${process.env.REACT_APP_API_URL}/services/${currentServiceId}/similar?limit=3`
         );
         if (!response.ok) {
           throw new Error("Erreur de chargement des services similaires.");

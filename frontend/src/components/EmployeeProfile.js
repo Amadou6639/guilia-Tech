@@ -45,7 +45,7 @@ export default function EmployeeProfile() {
     setError("");
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employees/${id}`,
+        `${process.env.REACT_APP_API_URL}/employees/${id}`,
         {
           headers: getAuthHeader(),
         }
@@ -65,7 +65,7 @@ export default function EmployeeProfile() {
   const fetchEmployeeLeaves = useCallback(async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employees/${id}/leaves`,
+        `${process.env.REACT_APP_API_URL}/employees/${id}/leaves`,
         {
           headers: getAuthHeader(),
         }
@@ -95,7 +95,7 @@ export default function EmployeeProfile() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/employees/${id}/photo`,
+        `${process.env.REACT_APP_API_URL}/employees/${id}/photo`,
         {
           method: "PUT",
           headers: getAuthHeader(),
@@ -212,7 +212,6 @@ export default function EmployeeProfile() {
             )}
           </ul>
         </div>
-        )}
         {activeTab === "leaves" && (
           <div>
             <h3 className="text-xl font-semibold text-gray-700 mb-4">

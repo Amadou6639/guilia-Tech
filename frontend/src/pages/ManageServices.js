@@ -102,7 +102,7 @@ const ManageServices = () => {
     try {
       const token = localStorage.getItem("admintoken");
       await axios.put(
-        `http://localhost:5000/api/services/${editingService.id}`,
+        `${process.env.REACT_APP_API_URL}/services/${editingService.id}`,
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -130,7 +130,7 @@ const ManageServices = () => {
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem("admintoken");
-      await axios.delete(`http://localhost:5000/api/services/${id}`, {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/services/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchServices();
